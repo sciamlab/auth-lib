@@ -1,0 +1,171 @@
+/**
+ * Copyright 2014 Sciamlab s.r.l.
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *    
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.sciamlab.auth.dao;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.ws.rs.core.MultivaluedHashMap;
+
+import org.apache.log4j.Logger;
+import org.json.JSONObject;
+
+import com.sciamlab.auth.model.Role;
+import com.sciamlab.auth.model.User;
+import com.sciamlab.auth.util.AppConfig;
+import com.sciamlab.common.dao.SciamlabDAO;
+import com.sciamlab.common.exception.DAOException;
+import com.sciamlab.common.exception.InternalServerErrorException;
+import com.sciamlab.common.exception.UnauthorizedException;
+import com.sciamlab.common.util.HTTPClient;
+import com.sciamlab.common.util.SciamlabStringUtils;
+
+/**
+ * 
+ * @author SciamLab
+ *
+ */
+
+public abstract class SciamlabRemoteAuthDAO extends SciamlabAuthDAO{
+	
+	private static final Logger logger = Logger.getLogger(SciamlabRemoteAuthDAO.class);
+	
+	private HTTPClient http = new HTTPClient();
+	
+	@Override
+	protected User getUser(final String col_key, final String col_value){
+		String result;
+		try {
+			logger.info("Invoking remote auth service... ["+AppConfig.API_KEY_VALIDATION_ENDPOINT+"]");
+			result = this.http.doGET(new URL(AppConfig.API_KEY_VALIDATION_ENDPOINT), 
+					new MultivaluedHashMap<String, String>(){{
+						put(col_key, new ArrayList<String>(){{ add(col_value); }});
+					}},null).readEntity(String.class);
+		} catch (MalformedURLException e) {
+			logger.error(e.getMessage(), e);
+			throw new InternalServerErrorException(e);
+		}
+		JSONObject json = null;
+		try {
+			json = new JSONObject(result);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new InternalServerErrorException(e);
+		}
+		if(!json.has("success"))
+			throw new InternalServerErrorException();
+		if(!json.getBoolean("success"))
+			throw new UnauthorizedException("Request rejected due to an authorization failure");
+		json = json.getJSONObject("user"); 
+        User user = new User(); 
+        user.setFirstName(json.getString("first_name"));
+        user.setUsername(json.getString("username"));
+		user.setEmailAddress(json.getString("email"));
+		user.setApiKey(json.getString("apiKey"));
+		user.setId(json.getString("id"));
+		user.getRoles().clear();
+		for(int i=0 ; i<json.getJSONArray("roles").length() ; i++){
+			user.getRoles().add(Role.valueOf(json.getJSONArray("roles").getString(i)));
+		}
+		user.getProfiles().clear();
+		for(int i=0 ; i<json.getJSONArray("profiles").length() ; i++){
+			JSONObject p = json.getJSONArray("profiles").getJSONObject(i); 
+			user.getProfiles().put(p.getString("api"), p.getString("profile"));
+		}
+        logger.debug("User: "+user);
+        return user;
+	}
+	
+	public List<Role> getRolesByUserId(final String id) { TODO
+		Map<String, Properties> map = this.execQuery("SELECT DISTINCT role FROM user_object_role WHERE user_id = ?",
+				new ArrayList<Object>(){{ add(id); }}, "role", new ArrayList<String>());
+		List<Role> roles = new ArrayList<Role>();
+		if(map.size()==0) {
+			roles.add(Role.anonymous);
+			return roles;
+		}
+		
+		for(String r : map.keySet()){
+			Role role = Role.valueOf(r);
+			if(role!=null){
+				roles.add(role);
+				logger.debug("Role added: "+r);
+			}else{
+				logger.warn(r+"is not identified as a valid role!");
+			}
+		}
+		if(roles.isEmpty())
+			roles.add(Role.anonymous);
+		return roles;
+	}
+	
+	/**
+	 * get the user profiles on all the apis
+	 * 
+	 * @param user_id
+	 * @return a map where the keys are the api names and the values are the related profiles
+	 */
+	public Map<String, String> getProfilesByUserId(final String user_id) { TODO
+		Map<String, Properties> result = this.execQuery("SELECT DISTINCT api,profile FROM user_api_profiles WHERE user_id = ?", 
+				new ArrayList<Object>(){{ add(user_id); }}, "api", new ArrayList<String>(){{ add("api"); add("profile"); }});
+		Map<String, String> profiles = new HashMap<String, String>();
+		for(String api : AppConfig.API_LIST){
+			String profile = (result.containsKey(api)) ? result.get(api).getProperty("profile") : AppConfig.API_BASIC_PROFILE;
+			profiles.put(api, profile);
+		}
+		return profiles;
+	}
+	
+	/**
+	 * set the user profile on the given api
+	 * 
+	 * @param user_id
+	 * @param api
+	 * @param profile
+	 * @return number of updated records
+	 */
+	public int setUserAPIProfile(final String user_id, final String api, final String profile) { TODO
+		int result = this.execUpdate("UPDATE user_api_profiles SET profile = ?, modified = ? WHERE user_id = ? AND api = ?",
+				new ArrayList<Object>() {{ add(profile); add(new java.sql.Date(new Date().getTime())); add(user_id); add(api);}});
+		if(result==0){
+			//profile not found for given api, need to insert
+			result = this.execUpdate("INSERT INTO user_api_profiles VALUES (?, ?, ?, ? ,?)",
+					new ArrayList<Object>() {{ add(user_id); add(api); add(profile); add(new java.sql.Date(new Date().getTime())); add(new java.sql.Date(new Date().getTime())); }});
+		}
+		return result;
+	}
+	
+	/**
+	 * delete the user profile on the given api
+	 * 
+	 * @param user_id
+	 * @param api
+	 * @param profile
+	 * @return number of updated records
+	 */
+	public int deleteUserAPIProfile(final String user_id, final String api) { TODO
+		int result = this.execUpdate("DELETE FROM user_api_profiles WHERE user_id = ? AND api = ?",
+				new ArrayList<Object>() {{ add(user_id); add(api); }});
+		return result;
+	}
+	
+}
