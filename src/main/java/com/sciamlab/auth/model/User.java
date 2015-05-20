@@ -44,6 +44,10 @@ public abstract class User implements JSONString, Principal{
         addRole(Role.anonymous); //all users are anonymous until credentials are proved
     }
     
+    public abstract String getUserName();
+    public abstract String getDisplayName();
+    public abstract String getUserType();
+    
     public String getId() {
 		return id;
 	}
@@ -113,7 +117,8 @@ public abstract class User implements JSONString, Principal{
     
 	@Override
 	public String toString() {
-		return "User [id="+id+", api_key=" + apikey + ", roles=" + roles + ", profiles=" + profiles + "]";
+		return "User [id="+id+", user_name=" + getUserName() + ", display_name=" + getDisplayName() + ", user_type=" + getUserType() 
+				+ ", api_key=" + apikey + ", roles=" + roles + ", profiles=" + profiles + "]";
 	}
 
 	@Override
@@ -124,6 +129,9 @@ public abstract class User implements JSONString, Principal{
 	public JSONObject toJSON() {
 		JSONObject result = new JSONObject();
 		result.put("id", id);
+        result.put("user_name", getUserName());
+        result.put("display_name", getDisplayName());
+        result.put("user_type", getUserType());
         result.put("api_key", apikey);
         JSONArray json_roles = new JSONArray();
 		for(Role r : roles){

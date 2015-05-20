@@ -1,6 +1,5 @@
 package com.sciamlab.auth.filter;
 
-import java.security.Key;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,12 +11,6 @@ import javax.ws.rs.container.ContainerRequestFilter;
 
 import org.apache.log4j.Logger;
 import org.glassfish.jersey.server.ContainerRequest;
-import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
-import org.jose4j.jwe.JsonWebEncryption;
-import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
-import org.jose4j.keys.AesKey;
-import org.jose4j.lang.ByteUtil;
-import org.jose4j.lang.JoseException;
 
 import com.sciamlab.auth.SciamlabSecurityContext;
 import com.sciamlab.auth.model.Role;
@@ -55,8 +48,8 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
         if(!dao.getLoggedUsers().containsKey(key))
         	throw new UnauthorizedException("no session found for user");
         try {
-			User user = dao.getLocalUsers().get(dao.getLoggedUsers().get(key));
-			request.setSecurityContext(new SciamlabSecurityContext(user));
+//			User user = dao.getLocalUsers().get(dao.getLoggedUsers().get(key));
+			request.setSecurityContext(new SciamlabSecurityContext(null));//user));
 			return ;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
@@ -83,22 +76,22 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
     }
     
     public static class LocalSecurityDao{
+    	
     	private static Map<String,UserLocal> users_local = new HashMap<String, UserLocal>();
     	private static Map<String,UserSocial> users_facebook = new HashMap<String, UserSocial>();
     	private static Map<String,UserSocial> users_google = new HashMap<String, UserSocial>();
     	private static Map<String,UserSocial> users_twitter = new HashMap<String, UserSocial>();
     	private static Map<String,UserSocial> users_github = new HashMap<String, UserSocial>();
-    	private static Map<String,String> logged_users = new HashMap<String, String>();
-    	private static Key key = new AesKey(ByteUtil.randomBytes(16));
+    	private static Map<String, Map> users = new HashMap<String, Map>();
+    	private static Map<String,User> logged_users = new HashMap<String, User>();
     	
     	static{
     		logger.debug("Starting LocalSecurityDao...");
-    		logger.debug("KEY : "+key);
     		UserLocal u = new UserLocal();
     		u.setFirstName("Paolo");
     		u.setLastName("Starace");
     		u.setEmail("paolo@sciamlab.com");
-    		u.setHashedPassword("1234");
+    		u.setPassword("1234");
     		u.getRoles().clear();
     		u.getRoles().add(Role.admin);
     		u.getRoles().add(Role.editor);
@@ -109,29 +102,18 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
     		u.setFirstName("Alessio");
     		u.setLastName("Dragoni");
     		u.setEmail("ad@sciamlab.com");
-    		u.setHashedPassword("1234");
+    		u.setPassword("1234");
     		u.getRoles().clear();
     		u.getRoles().add(Role.editor);
     		u.getProfiles().clear();
     		logger.debug("User: "+u);
     		users_local.put(u.getEmail(), u);
+    		users.put(UserSocial.FACEBOOK, users_facebook);
+    		users.put(UserSocial.GOOGLE, users_google);
+    		users.put(UserSocial.GITHUB, users_github);
+    		users.put(UserSocial.TWITTER, users_twitter);
+    		users.put(UserLocal.LOCAL, users_local);
     		logger.debug("[DONE]");
-    	}
-    	
-    	public static String createToken(String payload) throws JoseException{
-    		JsonWebEncryption jwe = new JsonWebEncryption();
-    		jwe.setPayload(payload);
-    		jwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.A128KW);
-    		jwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_128_CBC_HMAC_SHA_256);
-    		jwe.setKey(key);
-    		return jwe.getCompactSerialization();
-    	}
-    	
-    	public static String decodeToken(String serializedJwe) throws JoseException{
-    		JsonWebEncryption jwe = new JsonWebEncryption();
-    		jwe.setKey(key);
-    		jwe.setCompactSerialization(serializedJwe);
-    		return jwe.getPayload();
     	}
     	
     	public Map<String,UserLocal> getLocalUsers(){
@@ -149,8 +131,10 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
     	public Map<String,UserSocial> getGithubUsers(){
     		return users_github;
     	}
-    	
-    	public Map<String,String> getLoggedUsers(){
+    	public Map<String,Map> getUsersMap(){
+    		return users;
+    	}
+    	public Map<String,User> getLoggedUsers(){
     		return logged_users;
     	}
     }

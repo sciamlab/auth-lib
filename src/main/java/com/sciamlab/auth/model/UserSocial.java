@@ -4,13 +4,53 @@ import org.json.JSONObject;
 
 public class UserSocial extends User {
 	
+	public static final String FACEBOOK = "facebook";
+	public static final String GOOGLE = "google";
+	public static final String GITHUB = "github";
+	public static final String TWITTER = "twitter";
+	
 	private JSONObject socialDetails;
     private String socialId;
+    private String socialUser;
+    private String socialDisplay;
+    private String userType;
 
     public UserSocial() {
         super();
     }
     
+    public String getUserName(){
+    	return this.socialUser;
+    }
+    
+    public String getDisplayName(){
+    	return (this.socialDisplay!=null) ? this.socialDisplay : this.socialUser;
+    }
+    
+	public String getSocialUser() {
+		return socialUser;
+	}
+
+	public void setSocialUser(String socialUser) {
+		this.socialUser = socialUser;
+	}
+
+	public String getSocialDisplay() {
+		return socialDisplay;
+	}
+
+	public String getUserType() {
+		return userType;
+	}
+
+	public void setUserType(String userType) {
+		this.userType = userType;
+	}
+
+	public void setSocialDisplay(String socialDisplay) {
+		this.socialDisplay = socialDisplay;
+	}
+
 	public JSONObject getSocialDetails() {
 		return socialDetails;
 	}
@@ -27,7 +67,7 @@ public class UserSocial extends User {
 		return socialId;
 	}
 
-	public void setSocial_id(String social_id) {
+	public void setSocialId(String social_id) {
 		this.socialId = social_id;
 	}
 
@@ -55,7 +95,8 @@ public class UserSocial extends User {
 
 	@Override
 	public String toString() {
-		return super.toString() + " --> UserSocial [socialId=" + socialId + ", socialDetails=" + socialDetails + "]";
+		return super.toString() + " --> UserSocial [social_id=" + socialId + ", social_user=" + socialUser 
+				+ ", social_display=" + socialDisplay + ", user_type=" + userType + ", social_details=" + socialDetails + "]";
 	}
 
 	@Override
@@ -65,8 +106,11 @@ public class UserSocial extends User {
 	
 	public JSONObject toJSON() {
 		JSONObject result = super.toJSON();
-        result.put("socialId", socialId);
-        result.put("socialDetails", socialDetails);
+        result.put("social_id", socialId);
+        result.put("social_user", socialUser);
+        result.put("social_display", socialDisplay);
+        result.put("user_type", userType);
+        result.put("social_details", socialDetails);
 		return result;
 	}
 
