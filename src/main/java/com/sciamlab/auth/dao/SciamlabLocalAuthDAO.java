@@ -40,6 +40,26 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalAuthDAO.class);
 	
+	protected List<UserLocal> getUsersList() {
+		List<Properties> map = this.execQuery("SELECT * FROM \"user\"", 
+				null,
+				new ArrayList<String>(){{ add("id"); add("name"); add("fullname"); add("email"); add("apikey"); }}); 
+		List<UserLocal> users = new ArrayList<UserLocal>();
+		for(Properties p : map){
+			UserLocal u = new UserLocal();
+			u.setFirstName(p.getProperty("fullname"));
+			u.setEmail(p.getProperty("email"));
+			u.setApiKey(p.getProperty("apikey"));
+			u.setId(p.getProperty("name"));
+			u.getRoles().clear();
+			u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
+			u.getProfiles().clear();
+			u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
+			logger.debug("User: "+u);
+		}
+        return users;
+	}
+	
 	@Override
 	protected User getUser(String col_key, final String col_value) {
 		List<Properties> map = this.execQuery("SELECT * FROM \"user\" WHERE "+col_key+" = ?", 
@@ -53,7 +73,7 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
 		u.setFirstName(p.getProperty("fullname"));
 		u.setEmail(p.getProperty("email"));
 		u.setApiKey(p.getProperty("apikey"));
-		u.setId(p.getProperty("id"));
+		u.setId(p.getProperty("name"));
 		u.getRoles().clear();
 		u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
 		u.getProfiles().clear();

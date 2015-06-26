@@ -85,7 +85,7 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
     	
     	//reset the timer for next access (need to wait another second)
     	planCache.put(key, key);
-    	//add the plan to the header to be used in the resource class
+    	//add the plan to the header to be used in the parentResource class
     	request.setProperty("plan", user_profile);
     	return;
     }
