@@ -17,6 +17,6 @@ package com.sciamlab.auth.model;
 
 public enum Role {
 
-        admin, anonymous, editor
+        admin, anonymous, editor, reader
 }
 
