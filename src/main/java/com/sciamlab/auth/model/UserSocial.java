@@ -1,13 +1,18 @@
 package com.sciamlab.auth.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONObject;
 
 public class UserSocial extends User {
 	
 	public static final String FACEBOOK = "facebook";
-	public static final String GOOGLE = "google";
+	public static final String GPLUS = "gplus";
 	public static final String GITHUB = "github";
 	public static final String TWITTER = "twitter";
+	
+	public static final Map<String,String> SOCIAL_TYPES = new HashMap<String,String>(){{put(FACEBOOK,FACEBOOK);put(GPLUS,GPLUS);put(GITHUB,GITHUB);put(TWITTER,TWITTER);}};
 	
 	private JSONObject socialDetails;
     private String socialId;

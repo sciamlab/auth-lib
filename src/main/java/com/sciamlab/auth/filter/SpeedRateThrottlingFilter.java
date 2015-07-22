@@ -17,7 +17,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sciamlab.auth.dao.SciamlabAuthDAO;
 import com.sciamlab.auth.model.User;
-import com.sciamlab.auth.util.AppConfig;
+import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.exception.InternalServerErrorException;
 import com.sciamlab.common.exception.TooManyRequestsException;
 import com.sciamlab.common.util.SciamlabStringUtils;
@@ -65,9 +65,9 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
 	@Override
     public void filter(ContainerRequestContext requestContext) {
     	ContainerRequest request = (ContainerRequest) requestContext;
-    	String key = request.getHeaderString(AppConfig.HEADER_AUTHORIZATION_FIELD);
+    	String key = request.getHeaderString(AuthLibConfig.HEADER_AUTHORIZATION_FIELD);
     	if(key==null){
-        	List<String> key_params = request.getUriInfo().getQueryParameters().get(AppConfig.QUERY_AUTHORIZATION_FIELD);
+        	List<String> key_params = request.getUriInfo().getQueryParameters().get(AuthLibConfig.QUERY_AUTHORIZATION_FIELD);
         	if(key_params!=null && !key_params.isEmpty())
         		key = key_params.get(0);
         }
@@ -104,7 +104,7 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
 			super();
 			this.dao = dao;
 			this.api_name = api_name;
-			this.speed_limit_throttling_plans = new HashMap<String, Long>(){{put(AppConfig.API_BASIC_PROFILE,AppConfig.API_BASIC_PROFILE_SPEED);}};
+			this.speed_limit_throttling_plans = new HashMap<String, Long>(){{put(AuthLibConfig.API_BASIC_PROFILE,AuthLibConfig.API_BASIC_PROFILE_SPEED);}};
 		}
 		
 		public SpeedRateThrottlingFilterBuilder plan(String profile, Long rate) {

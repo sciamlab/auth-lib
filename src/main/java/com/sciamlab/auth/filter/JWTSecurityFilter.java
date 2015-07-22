@@ -109,7 +109,7 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
     		logger.debug("User: "+u);
     		users_local.put(u.getEmail(), u);
     		users.put(UserSocial.FACEBOOK, users_facebook);
-    		users.put(UserSocial.GOOGLE, users_google);
+    		users.put(UserSocial.GPLUS, users_google);
     		users.put(UserSocial.GITHUB, users_github);
     		users.put(UserSocial.TWITTER, users_twitter);
     		users.put(UserLocal.LOCAL, users_local);

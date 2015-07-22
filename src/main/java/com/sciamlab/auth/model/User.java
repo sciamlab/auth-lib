@@ -27,7 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONString;
 
-import com.sciamlab.auth.util.AppConfig;
+import com.sciamlab.auth.util.AuthLibConfig;
 
 public abstract class User implements JSONString, Principal{
 
@@ -82,7 +82,7 @@ public abstract class User implements JSONString, Principal{
 	
 	public String getProfile(String api) {
 		String profile = this.profiles.get(api);
-		return (profile!=null)?profile:AppConfig.API_BASIC_PROFILE;
+		return (profile!=null)?profile:AuthLibConfig.API_BASIC_PROFILE;
 	}
 
 	public boolean equals(Object otherUser) {
@@ -149,8 +149,8 @@ public abstract class User implements JSONString, Principal{
 		return result;
 	}
 	
-//	public User fromJSON(JSONObject json){
-//    	User u = new User();
+//	public static User fromJSON(JSONObject json){
+//    	User u = new UserLocal();
 ////    	u.setId(json.getString("id"));
 ////		u.setApiKey(json.getString("api_key"));
 //		u.getRoles().clear();

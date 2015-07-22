@@ -15,14 +15,9 @@
  */
 
 package com.sciamlab.auth.dao;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 
-import com.sciamlab.auth.model.Role;
 import com.sciamlab.auth.model.User;
-import com.sciamlab.common.dao.SciamlabDAO;
 
 /**
  * 
@@ -30,25 +25,26 @@ import com.sciamlab.common.dao.SciamlabDAO;
  *
  */
 
-public abstract class SciamlabAuthDAO extends SciamlabDAO{
+public interface SciamlabAuthDAO {//extends SciamlabDAO{
 	
-	private static final Logger logger = Logger.getLogger(SciamlabAuthDAO.class);
+//	private static final Logger logger = Logger.getLogger(SciamlabAuthDAO.class);
 	
-	public User getUserByApiKey(String apikey) {
-		return this.getUser("apikey", apikey);
-	}
-	
-//	public User getUserByName(String name) {
-//		return this.getUser("name", name);
+	public User getUserByApiKey(String apikey);
+//	public User getUserByApiKey(String apikey) {
+//		return this.getUser("apikey", apikey);
 //	}
 	
-	public User getUserById(String id) {
-		return this.getUser("id", id);
-	}
+////	public User getUserByName(String name) {
+////		return this.getUser("name", name);
+////	}
 	
-	abstract protected User getUser(final String col_key, final String col_value);
+//	public User getUserById(String id) {
+//		return this.getUser("id", id);
+//	}
 	
-	abstract public List<Role> getRolesByUserId(final String id);
+//	abstract public List<User> getUserList();
+//	abstract public User getUser(final String col_key, final String col_value);
+//	abstract public List<Role> getRolesByUserId(final String id);
 	
 	/**
 	 * get the user profiles on all the apis
@@ -56,7 +52,7 @@ public abstract class SciamlabAuthDAO extends SciamlabDAO{
 	 * @param user_id
 	 * @return a map where the keys are the api names and the values are the related profiles
 	 */
-	abstract public Map<String, String> getProfilesByUserId(final String user_id);
+//	abstract public Map<String, String> getProfilesByUserId(final String user_id);
 	
 	/**
 	 * set the user profile on the given api
@@ -66,7 +62,7 @@ public abstract class SciamlabAuthDAO extends SciamlabDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-	abstract public int setUserAPIProfile(final String user_id, final String api, final String profile);
+//	abstract public int setUserAPIProfile(final String user_id, final String api, final String profile);
 	
 	/**
 	 * delete the user profile on the given api
@@ -76,5 +72,5 @@ public abstract class SciamlabAuthDAO extends SciamlabDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-	abstract public int deleteUserAPIProfile(final String user_id, final String api);
+//	abstract public int deleteUserAPIProfile(final String user_id, final String api);
 }

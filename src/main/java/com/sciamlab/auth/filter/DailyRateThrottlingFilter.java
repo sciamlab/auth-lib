@@ -18,7 +18,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sciamlab.auth.dao.SciamlabAuthDAO;
 import com.sciamlab.auth.model.User;
-import com.sciamlab.auth.util.AppConfig;
+import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.exception.InternalServerErrorException;
 import com.sciamlab.common.exception.TooManyRequestsException;
 import com.sciamlab.common.util.SciamlabDateUtils;
@@ -46,9 +46,9 @@ public class DailyRateThrottlingFilter implements ContainerRequestFilter {
 	@Override
     public void filter(ContainerRequestContext requestContext) {
     	ContainerRequest request = (ContainerRequest) requestContext;
-    	String key = request.getHeaderString(AppConfig.HEADER_AUTHORIZATION_FIELD);
+    	String key = request.getHeaderString(AuthLibConfig.HEADER_AUTHORIZATION_FIELD);
     	if(key==null){
-        	List<String> key_params = request.getUriInfo().getQueryParameters().get(AppConfig.QUERY_AUTHORIZATION_FIELD);
+        	List<String> key_params = request.getUriInfo().getQueryParameters().get(AuthLibConfig.QUERY_AUTHORIZATION_FIELD);
         	if(key_params!=null && !key_params.isEmpty())
         		key = key_params.get(0);
         }
@@ -70,7 +70,7 @@ public class DailyRateThrottlingFilter implements ContainerRequestFilter {
     	tmpCache.put(SciamlabDateUtils.getCurrentDateAsIso8061String(), key);
     	
     	Set<String> copyCache = tmpCache.asMap().keySet();
-    	if(copyCache.size()>AppConfig.DAILY_LIMIT_THROTTLING_PLANS.get(user_profile))
+    	if(copyCache.size()>AuthLibConfig.DAILY_LIMIT_THROTTLING_PLANS.get(user_profile))
     		throw new TooManyRequestsException("Exceeded limit of "+this.daily_limit_throttling_plans.get(user_profile)+" calls in the given time of one day");
     	
     	return;
@@ -90,7 +90,7 @@ public class DailyRateThrottlingFilter implements ContainerRequestFilter {
 			super();
 			this.dao = dao;
 			this.api_name = api_name;
-			this.daily_limit_throttling_plans = new HashMap<String, Long>(){{put(AppConfig.API_BASIC_PROFILE,AppConfig.API_BASIC_PROFILE_DAILY);}};
+			this.daily_limit_throttling_plans = new HashMap<String, Long>(){{put(AuthLibConfig.API_BASIC_PROFILE,AuthLibConfig.API_BASIC_PROFILE_DAILY);}};
 		}
 		
 		public DailyRateThrottlingFilterBuilder plan(String profile, Long rate) {

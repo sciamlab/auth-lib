@@ -23,11 +23,15 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.json.JSONObject;
+import org.postgresql.util.PGobject;
 
 import com.sciamlab.auth.model.Role;
 import com.sciamlab.auth.model.User;
 import com.sciamlab.auth.model.UserLocal;
-import com.sciamlab.auth.util.AppConfig;
+import com.sciamlab.auth.model.UserSocial;
+import com.sciamlab.auth.util.AuthLibConfig;
+import com.sciamlab.common.dao.SciamlabDAO;
 import com.sciamlab.common.exception.DAOException;
 
 /**
@@ -36,42 +40,33 @@ import com.sciamlab.common.exception.DAOException;
  *
  */
 
-public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
+public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements SciamlabAuthDAO {
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalAuthDAO.class);
 	
-	protected List<UserLocal> getUsersList() {
-		List<Properties> map = this.execQuery("SELECT * FROM \"user\"", 
-				null,
-				new ArrayList<String>(){{ add("id"); add("name"); add("fullname"); add("email"); add("apikey"); }}); 
-		List<UserLocal> users = new ArrayList<UserLocal>();
-		for(Properties p : map){
-			UserLocal u = new UserLocal();
-			u.setFirstName(p.getProperty("fullname"));
-			u.setEmail(p.getProperty("email"));
-			u.setApiKey(p.getProperty("apikey"));
-			u.setId(p.getProperty("name"));
-			u.getRoles().clear();
-			u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
-			u.getProfiles().clear();
-			u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
-			logger.debug("User: "+u);
-		}
-        return users;
+	@Override
+	public User getUserByApiKey(String apikey) {
+		return this.getUser("apikey", apikey);
 	}
 	
-	@Override
-	protected User getUser(String col_key, final String col_value) {
-		List<Properties> map = this.execQuery("SELECT * FROM \"user\" WHERE "+col_key+" = ?", 
+	public User getUser(String col_key, final String col_value) {
+		List<Properties> map = this.execQuery("SELECT * FROM "+AuthLibConfig.USERS_TABLE_NAME+" u left join "+AuthLibConfig.USERS_SOCIAL_TABLE_NAME+" us on u.id=us.ckan_id WHERE "+col_key+" = ?", 
 				new ArrayList<Object>(){{ add(col_value); }},
-				new ArrayList<String>(){{ add("id"); add("name"); add("fullname"); add("email"); add("apikey"); }}); 
+				new ArrayList<String>(){{ add("id"); add("name"); add("fullname"); add("email"); add("apikey"); add("social"); add("details");  }}); 
 		if(map.size()==0) return null;
 		if(map.size()>1) 
 			throw new DAOException("Multiple users retrieved using "+col_key+": "+col_value);
 		Properties p = map.get(0);
-		UserLocal u = new UserLocal();
-		u.setFirstName(p.getProperty("fullname"));
-		u.setEmail(p.getProperty("email"));
+		User u = null;
+		if(p.containsKey("social")){
+			u = new UserSocial();
+			((UserSocial) u).setUserType(UserSocial.SOCIAL_TYPES.get(p.getProperty("social")));
+			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
+		}else{
+			u = new UserLocal();
+			((UserLocal) u).setFirstName(p.getProperty("fullname"));
+			((UserLocal) u).setEmail(p.getProperty("email"));
+		}
 		u.setApiKey(p.getProperty("apikey"));
 		u.setId(p.getProperty("name"));
 		u.getRoles().clear();
@@ -82,9 +77,36 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
         return u;
 	}
 	
-	@Override
+	public List<User> getUserList() {
+		List<Properties> map = this.execQuery("SELECT * FROM "+AuthLibConfig.USERS_TABLE_NAME+" u left join "+AuthLibConfig.USERS_SOCIAL_TABLE_NAME+" us on u.id=us.ckan_id", 
+				null,
+				new ArrayList<String>(){{ add("id"); add("name"); add("fullname"); add("email"); add("apikey"); add("social"); add("details"); }}); 
+		List<User> users = new ArrayList<User>();
+		for(Properties p : map){
+			User u = null;
+			if(p.containsKey("social")){
+				u = new UserSocial();
+				((UserSocial) u).setUserType(UserSocial.SOCIAL_TYPES.get(p.getProperty("social")));
+				((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
+			}else{
+				u = new UserLocal();
+				((UserLocal) u).setFirstName(p.getProperty("fullname"));
+				((UserLocal) u).setEmail(p.getProperty("email"));
+			}
+			u.setApiKey(p.getProperty("apikey"));
+			u.setId(p.getProperty("name"));
+			u.getRoles().clear();
+			u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
+			u.getProfiles().clear();
+			u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
+			logger.debug("User: "+u);
+			users.add(u);
+		}
+        return users;
+	}
+	
 	public List<Role> getRolesByUserId(final String id) {
-		Map<String, Properties> map = this.execQuery("SELECT DISTINCT role FROM user_object_role WHERE user_id = ?",
+		Map<String, Properties> map = this.execQuery("SELECT DISTINCT role FROM "+AuthLibConfig.ROLES_TABLE_NAME+" WHERE user_id = ?",
 				new ArrayList<Object>(){{ add(id); }}, "role", new ArrayList<String>());
 		List<Role> roles = new ArrayList<Role>();
 		if(map.size()==0) {
@@ -112,13 +134,12 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
 	 * @param user_id
 	 * @return a map where the keys are the api names and the values are the related profiles
 	 */
-	@Override
 	public Map<String, String> getProfilesByUserId(final String user_id) {
-		Map<String, Properties> result = this.execQuery("SELECT DISTINCT api,profile FROM user_api_profiles WHERE user_id = ?", 
+		Map<String, Properties> result = this.execQuery("SELECT DISTINCT api,profile FROM "+AuthLibConfig.PROFILES_TABLE_NAME+" WHERE user_id = ?", 
 				new ArrayList<Object>(){{ add(user_id); }}, "api", new ArrayList<String>(){{ add("api"); add("profile"); }});
 		Map<String, String> profiles = new HashMap<String, String>();
-		for(String api : AppConfig.API_LIST){
-			String profile = (result.containsKey(api)) ? result.get(api).getProperty("profile") : AppConfig.API_BASIC_PROFILE;
+		for(String api : AuthLibConfig.API_LIST){
+			String profile = (result.containsKey(api)) ? result.get(api).getProperty("profile") : AuthLibConfig.API_BASIC_PROFILE;
 			profiles.put(api, profile);
 		}
 		return profiles;
@@ -132,13 +153,12 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-	@Override
 	public int setUserAPIProfile(final String user_id, final String api, final String profile) {
-		int result = this.execUpdate("UPDATE user_api_profiles SET profile = ?, modified = ? WHERE user_id = ? AND api = ?",
+		int result = this.execUpdate("UPDATE "+AuthLibConfig.PROFILES_TABLE_NAME+" SET profile = ?, modified = ? WHERE user_id = ? AND api = ?",
 				new ArrayList<Object>() {{ add(profile); add(new java.sql.Date(new Date().getTime())); add(user_id); add(api);}});
 		if(result==0){
 			//profile not found for given api, need to insert
-			result = this.execUpdate("INSERT INTO user_api_profiles VALUES (?, ?, ?, ? ,?)",
+			result = this.execUpdate("INSERT INTO "+AuthLibConfig.PROFILES_TABLE_NAME+" VALUES (?, ?, ?, ? ,?)",
 					new ArrayList<Object>() {{ add(user_id); add(api); add(profile); add(new java.sql.Date(new Date().getTime())); add(new java.sql.Date(new Date().getTime())); }});
 		}
 		return result;
@@ -152,11 +172,11 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabAuthDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-	@Override
 	public int deleteUserAPIProfile(final String user_id, final String api) {
-		int result = this.execUpdate("DELETE FROM user_api_profiles WHERE user_id = ? AND api = ?",
+		int result = this.execUpdate("DELETE FROM "+AuthLibConfig.PROFILES_TABLE_NAME+" WHERE user_id = ? AND api = ?",
 				new ArrayList<Object>() {{ add(user_id); add(api); }});
 		return result;
 	}
+	
 	
 }
