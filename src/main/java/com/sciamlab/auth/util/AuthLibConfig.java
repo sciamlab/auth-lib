@@ -1,17 +1,63 @@
 package com.sciamlab.auth.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.log4j.Logger;
+import org.jose4j.keys.AesKey;
+import org.jose4j.lang.ByteUtil;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.sciamlab.common.util.SciamlabStreamUtils;
 
 public class AuthLibConfig {
+	
+	private static final Logger logger = Logger.getLogger(AuthLibConfig.class);
 
-    public static String API_KEY_VALIDATION_ENDPOINT;
+	
+	public static final String DEFAULT_PROPS_FILE = "auth.properties";
+
+	public static String GET_USER_BY_ID;
+	public static String GET_USER_BY_API_KEY;
+    public static String GET_USERS_LIST;
+    public static String GET_ROLES_BY_USER_ID;
+    public static String GET_PRODUCTS_LIST;
+    public static String GET_PROFILES_BY_USER_ID;
+    public static String INSERT_USER_PRODUCT_PROFILE;
+    public static String UPDATE_USER_PRODUCT_PROFILE;
+    public static String DELETE_USER_PRODUCT_PROFILE;
+    public static String INSERT_USER_ROLE;
+    public static String UPDATE_USER_ROLE;
+    public static String DELETE_USER_ROLE;
+	public static String GET_USER_LOCAL;
+	public static String GET_USER_SOCIAL;
+	public static String DELETE_USER;
+	public static String INSERT_USER;
+	public static String INSERT_USER_LOCAL;
+	public static String INSERT_USER_SOCIAL;
+	public static String UPDATE_USER;
+	public static String UPDATE_USER_LOCAL;
+	public static String UPDATE_USER_SOCIAL;
+	public static String CHECK_USER_LOCAL_DELETED;
+	public static String CHECK_USER_SOCIAL_DELETED;
+
+	public static final Key JWT_KEY = new AesKey(ByteUtil.randomBytes(16));
+	public static String JWT_VALIDATION_ENDPOINT;
+
+	
+
+	
+	
+	
+	public static String API_KEY_VALIDATION_ENDPOINT;
 	public static String API_KEY_INTERNAL;
 	public static int SESSION_DATE_OFFSET_IN_MINUTES = 15;
     public static int ACCESS_TOKEN_LIFETIME_IN_MILLIS = 5000;
@@ -46,4 +92,62 @@ public class AuthLibConfig {
     public static String ROLES_TABLE_NAME;
     public static String PROFILES_TABLE_NAME;
     public static String USERS_SOCIAL_TABLE_NAME;
+
+
+	
+
+	
+
+	 
+    static{
+		//loading properties
+		try {
+			loadProps();
+			logger.info("Properties loading completed");
+		} catch (Exception e) {
+			logger.error("Error loading properties", e);
+			throw new RuntimeException(e);
+		}
+	} 
+    
+	public static void init(){}
+
+    
+    public static void loadProps() throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		try (InputStream is = SciamlabStreamUtils.getInputStream(System.getProperty("props_filepath", DEFAULT_PROPS_FILE));){
+			Properties prop = new Properties();
+			prop.load(is);
+			
+			for(Object k : prop.keySet()){
+				logger.info(k+": "+prop.getProperty((String)k));
+			}
+			
+			GET_USER_BY_API_KEY = prop.getProperty("get_user_by_apikey");
+			GET_USER_BY_ID = prop.getProperty("get_user_by_id");
+			GET_USERS_LIST = prop.getProperty("get_users_list");
+			GET_ROLES_BY_USER_ID = prop.getProperty("get_roles_by_user_id");
+			GET_PRODUCTS_LIST = prop.getProperty("get_product_list");
+			GET_PROFILES_BY_USER_ID = prop.getProperty("get_profiles_by_user_id");
+			DELETE_USER_PRODUCT_PROFILE = prop.getProperty("delete_user_product_profile");
+			UPDATE_USER_PRODUCT_PROFILE = prop.getProperty("update_user_product_profile");
+			INSERT_USER_PRODUCT_PROFILE = prop.getProperty("insert_user_product_profile");
+			UPDATE_USER_ROLE = prop.getProperty("update_user_role");
+			DELETE_USER_ROLE = prop.getProperty("delete_user_role");
+			INSERT_USER_ROLE = prop.getProperty("insert_user_role");
+			GET_USER_LOCAL = prop.getProperty("get_user_local");
+			GET_USER_SOCIAL = prop.getProperty("get_user_social");
+			INSERT_USER = prop.getProperty("insert_user");
+			INSERT_USER_LOCAL = prop.getProperty("insert_user_local");
+			INSERT_USER_SOCIAL = prop.getProperty("insert_user_social");
+			DELETE_USER = prop.getProperty("delete_user");
+			UPDATE_USER = prop.getProperty("update_user");
+			UPDATE_USER_LOCAL = prop.getProperty("update_user_local");
+			UPDATE_USER_SOCIAL = prop.getProperty("update_user_social");
+			CHECK_USER_LOCAL_DELETED = prop.getProperty("check_user_local_deleted");
+			CHECK_USER_SOCIAL_DELETED = prop.getProperty("check_user_social_deleted");
+			
+			JWT_VALIDATION_ENDPOINT = prop.getProperty("jwt.validation.endpoint");
+			
+		}
+	}
 }

@@ -9,13 +9,16 @@ public class UserLocal extends User {
     private String email;
     private String password;
     
-    public static final String LOCAL = "local";
-
+    
     public UserLocal() {
         super();
     }
     
-    public String getUserType(){
+    public UserLocal(String id, String api_key) {
+        super(id, api_key);
+    }
+    
+    public String getType(){
     	return LOCAL;
     }
     

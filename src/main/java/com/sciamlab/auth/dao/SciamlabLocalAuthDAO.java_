@@ -49,6 +49,11 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 		return this.getUser("apikey", apikey);
 	}
 	
+	@Override
+	public User validate(String jwt) {
+		throw new RuntimeException("method not implemented!!");
+	}
+	
 	public User getUser(String col_key, final String col_value) {
 		List<Properties> map = this.execQuery("SELECT * FROM "+AuthLibConfig.USERS_TABLE_NAME+" u left join "+AuthLibConfig.USERS_SOCIAL_TABLE_NAME+" us on u.id=us.ckan_id WHERE "+col_key+" = ?", 
 				new ArrayList<Object>(){{ add(col_value); }},
@@ -60,7 +65,7 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 		User u = null;
 		if(p.containsKey("social")){
 			u = new UserSocial();
-			((UserSocial) u).setUserType(UserSocial.SOCIAL_TYPES.get(p.getProperty("social")));
+			((UserSocial) u).setSocialType(UserSocial.TYPES.get(p.getProperty("social")));
 			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 		}else{
 			u = new UserLocal();
@@ -86,7 +91,7 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 			User u = null;
 			if(p.containsKey("social")){
 				u = new UserSocial();
-				((UserSocial) u).setUserType(UserSocial.SOCIAL_TYPES.get(p.getProperty("social")));
+				((UserSocial) u).setSocialType(UserSocial.TYPES.get(p.getProperty("social")));
 				((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 			}else{
 				u = new UserLocal();
@@ -177,6 +182,5 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 				new ArrayList<Object>() {{ add(user_id); add(api); }});
 		return result;
 	}
-	
 	
 }

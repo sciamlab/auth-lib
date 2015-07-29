@@ -30,8 +30,19 @@ import org.json.JSONString;
 import com.sciamlab.auth.util.AuthLibConfig;
 
 public abstract class User implements JSONString, Principal{
-
-    private String id;
+	
+	public static final String LOCAL 	= "local";
+	public static final String FACEBOOK = "facebook";
+	public static final String GPLUS 	= "gplus";
+	public static final String GITHUB 	= "github";
+	public static final String TWITTER 	= "twitter";
+	
+	public static final Map<String,String> TYPES = new HashMap<String,String>(){{
+		put(LOCAL,LOCAL); put(FACEBOOK,FACEBOOK); put(GPLUS,GPLUS); put(GITHUB,GITHUB); put(TWITTER,TWITTER);
+	}};
+	
+	private String id;
+    private String api_key;
 
     private List<Role> roles = new ArrayList<Role>();
     private Map<String, String> profiles = new HashMap<String, String>();
@@ -44,9 +55,15 @@ public abstract class User implements JSONString, Principal{
         addRole(Role.anonymous); //all users are anonymous until credentials are proved
     }
     
+    public User(String id, String api_key) {
+        this.id = id;
+        this.apikey = api_key;
+        addRole(Role.anonymous); //all users are anonymous until credentials are proved
+    }
+    
     public abstract String getUserName();
     public abstract String getDisplayName();
-    public abstract String getUserType();
+    public abstract String getType();
     
     public String getId() {
 		return id;
@@ -117,7 +134,7 @@ public abstract class User implements JSONString, Principal{
     
 	@Override
 	public String toString() {
-		return "User [id="+id+", user_name=" + getUserName() + ", display_name=" + getDisplayName() + ", user_type=" + getUserType() 
+		return "User [id="+id+", user_name=" + getUserName() + ", display_name=" + getDisplayName() + ", user_type=" + getType() 
 				+ ", api_key=" + apikey + ", roles=" + roles + ", profiles=" + profiles + "]";
 	}
 
@@ -131,7 +148,7 @@ public abstract class User implements JSONString, Principal{
 		result.put("id", id);
         result.put("user_name", getUserName());
         result.put("display_name", getDisplayName());
-        result.put("user_type", getUserType());
+        result.put("user_type", getType());
         result.put("api_key", apikey);
         JSONArray json_roles = new JSONArray();
 		for(Role r : roles){
@@ -149,20 +166,4 @@ public abstract class User implements JSONString, Principal{
 		return result;
 	}
 	
-//	public static User fromJSON(JSONObject json){
-//    	User u = new UserLocal();
-////    	u.setId(json.getString("id"));
-////		u.setApiKey(json.getString("api_key"));
-//		u.getRoles().clear();
-//		for(int i=0 ; i<json.getJSONArray("roles").length() ; i++){
-//			u.getRoles().add(Role.valueOf(json.getJSONArray("roles").getString(i)));
-//		}
-//		u.getProfiles().clear();
-//		for(int i=0 ; i<json.getJSONArray("profiles").length() ; i++){
-//			JSONObject p = json.getJSONArray("profiles").getJSONObject(i);
-//			u.getProfiles().put(p.getString("api"), p.getString("profile"));
-//		}
-//		return u;
-//    }
-
 }

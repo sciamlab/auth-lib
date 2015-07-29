@@ -1,27 +1,21 @@
 package com.sciamlab.auth.model;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.json.JSONObject;
 
 public class UserSocial extends User {
-	
-	public static final String FACEBOOK = "facebook";
-	public static final String GPLUS = "gplus";
-	public static final String GITHUB = "github";
-	public static final String TWITTER = "twitter";
-	
-	public static final Map<String,String> SOCIAL_TYPES = new HashMap<String,String>(){{put(FACEBOOK,FACEBOOK);put(GPLUS,GPLUS);put(GITHUB,GITHUB);put(TWITTER,TWITTER);}};
 	
 	private JSONObject socialDetails;
     private String socialId;
     private String socialUser;
     private String socialDisplay;
-    private String userType;
+    private String socialType;
 
     public UserSocial() {
         super();
+    }
+    
+    public UserSocial(String id, String api_key) {
+        super(id, api_key);
     }
     
     public String getUserName(){
@@ -44,12 +38,12 @@ public class UserSocial extends User {
 		return socialDisplay;
 	}
 
-	public String getUserType() {
-		return userType;
+	public String getType() {
+		return socialType;
 	}
 
-	public void setUserType(String userType) {
-		this.userType = userType;
+	public void setSocialType(String userType) {
+		this.socialType = userType;
 	}
 
 	public void setSocialDisplay(String socialDisplay) {
@@ -101,7 +95,7 @@ public class UserSocial extends User {
 	@Override
 	public String toString() {
 		return super.toString() + " --> UserSocial [social_id=" + socialId + ", social_user=" + socialUser 
-				+ ", social_display=" + socialDisplay + ", user_type=" + userType + ", social_details=" + socialDetails + "]";
+				+ ", social_display=" + socialDisplay + ", social_type=" + socialType + ", social_details=" + socialDetails + "]";
 	}
 
 	@Override
@@ -114,7 +108,7 @@ public class UserSocial extends User {
         result.put("social_id", socialId);
         result.put("social_user", socialUser);
         result.put("social_display", socialDisplay);
-        result.put("user_type", userType);
+        result.put("social_type", socialType);
         result.put("social_details", socialDetails);
 		return result;
 	}

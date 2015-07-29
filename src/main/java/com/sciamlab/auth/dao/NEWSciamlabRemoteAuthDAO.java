@@ -48,21 +48,26 @@ import com.sciamlab.common.util.SciamlabStringUtils;
  *
  */
 
-public abstract class SciamlabRemoteAuthDAO extends SciamlabDAO implements SciamlabAuthDAO{
+public abstract class NEWSciamlabRemoteAuthDAO extends SciamlabDAO implements SciamlabAuthDAO{
 	
-	private static final Logger logger = Logger.getLogger(SciamlabRemoteAuthDAO.class);
+	private static final Logger logger = Logger.getLogger(NEWSciamlabRemoteAuthDAO.class);
 	
 	private HTTPClient http = new HTTPClient();
 	
+//	@Override
+//	public User getUserByApiKey(final String apikey) {
+//		throw new RuntimeException("method not implemented yet!");
+//	}
+	
 	@Override
-	public User getUserByApiKey(final String apikey) {
+	public User validate(final String jwt){
 		String result;
 		try {
-			logger.info("Invoking remote auth service... ["+AuthLibConfig.API_KEY_VALIDATION_ENDPOINT+"]");
-			result = this.http.doGET(new URL(AuthLibConfig.API_KEY_VALIDATION_ENDPOINT), 
+			logger.info("Invoking remote auth service... ["+AuthLibConfig.JWT_VALIDATION_ENDPOINT+"]");
+			result = this.http.doGET(new URL(AuthLibConfig.JWT_VALIDATION_ENDPOINT), null,
 					new MultivaluedHashMap<String, String>(){{
-						put("key", new ArrayList<String>(){{ add(apikey); }});
-					}},null).readEntity(String.class);
+						put("Authorization", new ArrayList<String>(){{ add(jwt); }});
+					}}).readEntity(String.class);
 		} catch (MalformedURLException e) {
 			throw new DAOException(e);
 		}
@@ -72,23 +77,19 @@ public abstract class SciamlabRemoteAuthDAO extends SciamlabDAO implements Sciam
 		} catch (Exception e) {
 			throw new DAOException(json.toString());
 		}
-		if(!json.has("success"))
-			throw new DAOException(json.toString());
-		if(!json.getBoolean("success"))
+		if(json.has("error") || !json.optBoolean("success"))
 			return null;
 		json = json.getJSONObject("user"); 
 		User u = null;
 		if("local".equals(json.getString("user_type"))){
-			u = new UserLocal();
+			u = new UserLocal(json.getString("id"), json.getString("api_key"));
 			((UserLocal) u).setFirstName(json.getString("first_name"));
 			((UserLocal) u).setEmail(json.getString("email"));
 		}else{
-			u = new UserSocial();
-			((UserSocial) u).setUserType(UserSocial.SOCIAL_TYPES.get(json.getString("user_type")));
+			u = new UserSocial(json.getString("id"), json.getString("api_key"));
+			((UserSocial) u).setSocialType(UserSocial.TYPES.get(json.getString("user_type")));
 			((UserSocial) u).setSocialDetails(json.getJSONObject("social_details"));
 		}
-		u.setApiKey(json.getString("api_key"));
-		u.setId(json.getString("id"));
 		u.getRoles().clear();
 		for(String r : SciamlabCollectionUtils.asStringList(json.getJSONArray("roles"))){
 			u.getRoles().add(Role.valueOf(r));
@@ -100,5 +101,6 @@ public abstract class SciamlabRemoteAuthDAO extends SciamlabDAO implements Sciam
 		logger.debug("User: "+u);
         return u;
 	}
+
 	
 }

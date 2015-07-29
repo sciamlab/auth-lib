@@ -29,7 +29,14 @@ public interface SciamlabAuthDAO {//extends SciamlabDAO{
 	
 //	private static final Logger logger = Logger.getLogger(SciamlabAuthDAO.class);
 	
-	public User getUserByApiKey(String apikey);
+//	public User getUserByApiKey(String apikey);
+	
+	/**
+	 * checks if the given token is bound to an active user session
+	 * @param jwt
+	 * @return the logged user, if any, or null if the given JWT doesn't refer to any user
+	 */
+	public User validate(String jwt);
 //	public User getUserByApiKey(String apikey) {
 //		return this.getUser("apikey", apikey);
 //	}
