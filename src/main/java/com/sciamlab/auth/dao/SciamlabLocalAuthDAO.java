@@ -45,9 +45,9 @@ import com.sciamlab.common.util.SciamlabTokenUtils;
  *
  */
 
-public abstract class NEWSciamlabLocalAuthDAO extends SciamlabDAO implements SciamlabAuthDAO {
+public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements SciamlabAuthDAO {
 	
-	private static final Logger logger = Logger.getLogger(NEWSciamlabLocalAuthDAO.class);
+	private static final Logger logger = Logger.getLogger(SciamlabLocalAuthDAO.class);
 	private static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
 	private static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
 	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();

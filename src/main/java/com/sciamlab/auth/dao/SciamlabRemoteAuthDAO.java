@@ -48,9 +48,9 @@ import com.sciamlab.common.util.SciamlabStringUtils;
  *
  */
 
-public abstract class NEWSciamlabRemoteAuthDAO extends SciamlabDAO implements SciamlabAuthDAO{
+public abstract class SciamlabRemoteAuthDAO extends SciamlabDAO implements SciamlabAuthDAO{
 	
-	private static final Logger logger = Logger.getLogger(NEWSciamlabRemoteAuthDAO.class);
+	private static final Logger logger = Logger.getLogger(SciamlabRemoteAuthDAO.class);
 	
 	private HTTPClient http = new HTTPClient();
 	
@@ -63,7 +63,7 @@ public abstract class NEWSciamlabRemoteAuthDAO extends SciamlabDAO implements Sc
 	public User validate(final String jwt){
 		String result;
 		try {
-			logger.info("Invoking remote auth service... ["+AuthLibConfig.JWT_VALIDATION_ENDPOINT+"]");
+			logger.debug("Invoking remote auth service... ["+AuthLibConfig.JWT_VALIDATION_ENDPOINT+"]");
 			result = this.http.doGET(new URL(AuthLibConfig.JWT_VALIDATION_ENDPOINT), null,
 					new MultivaluedHashMap<String, String>(){{
 						put("Authorization", new ArrayList<String>(){{ add(jwt); }});
