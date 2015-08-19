@@ -110,9 +110,11 @@ public class AuthLibConfig {
 		}
 	} 
     
+    /**
+	 * this is just to force the loading of static properties
+	 */
 	public static void init(){}
 
-    
     public static void loadProps() throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
 		try (InputStream is = SciamlabStreamUtils.getInputStream(System.getProperty("props_filepath", DEFAULT_PROPS_FILE));){
 			Properties prop = new Properties();
