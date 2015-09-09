@@ -9,6 +9,21 @@
 
 	<name>SciamLab Auth Library</name>
 
+	<scm>
+	   <connection>scm:svn:http://dev.sciamlab.com/svn/repo/main/${project.groupId}/${project.artifactId}/trunk</connection>
+	   <developerConnection>scm:svn:http://dev.sciamlab.com/svn/repo/main/${project.groupId}/${project.artifactId}/trunk</developerConnection>
+	</scm> 
+	
+	<distributionManagement>
+		<repository>
+			<id>releases</id>
+			<url>http://dev.sciamlab.com:8081/nexus/content/repositories/releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshots</id>
+			<url>http://dev.sciamlab.com:8081/nexus/content/repositories/snapshots</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<jersey.version>2.7</jersey.version>
