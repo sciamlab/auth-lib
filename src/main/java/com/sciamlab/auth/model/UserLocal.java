@@ -34,15 +34,17 @@ public class UserLocal extends User {
     	return display;
     }
     
-    public String getPassword() {
+    public String getEncodedPassword() {
 		return password;
 	}
     
 	public void setPassword(String password) {
+		//TODO encode
 		this.password = password;
 	}
 	
 	public boolean checkPassword(String password) {
+		//TODO encode
 		return this.password.equals(password);
 	}
 

@@ -52,11 +52,6 @@ public class AuthLibConfig {
 	public static final Key JWT_KEY = new AesKey(ByteUtil.randomBytes(16));
 	public static String JWT_VALIDATION_ENDPOINT;
 
-	
-
-	
-	
-	
 	public static String API_KEY_VALIDATION_ENDPOINT;
 	public static String API_KEY_INTERNAL;
 	public static int SESSION_DATE_OFFSET_IN_MINUTES = 15;
@@ -88,17 +83,14 @@ public class AuthLibConfig {
     public static String INTERNAL_USER_ID;
     public static String ACCESS_TOKEN_VALIDATION_ENDPOINT;
     
+    /*
+     * those are used only by ckan4jwebapidao (going to be deprecated)
+     */
     public static String USERS_TABLE_NAME;
     public static String ROLES_TABLE_NAME;
     public static String PROFILES_TABLE_NAME;
     public static String USERS_SOCIAL_TABLE_NAME;
 
-
-	
-
-	
-
-	 
     static{
 		//loading properties
 		try {
@@ -149,6 +141,11 @@ public class AuthLibConfig {
 			CHECK_USER_SOCIAL_DELETED = prop.getProperty("check_user_social_deleted");
 			
 			JWT_VALIDATION_ENDPOINT = prop.getProperty("jwt.validation.endpoint");
+			
+			USERS_TABLE_NAME = prop.getProperty("db.table.users");
+			USERS_SOCIAL_TABLE_NAME = prop.getProperty("db.table.users_social");
+			ROLES_TABLE_NAME = prop.getProperty("db.table.roles");
+			PROFILES_TABLE_NAME = prop.getProperty("db.table.profiles");
 			
 		}
 	}

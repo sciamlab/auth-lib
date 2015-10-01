@@ -427,7 +427,7 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 				add(((UserLocal)user).getFirstName());
 				add(((UserLocal)user).getLastName());
 				add(((UserLocal)user).getEmail());
-				add(((UserLocal)user).getPassword());
+				add(((UserLocal)user).getEncodedPassword());
 			}});
 		}else{
 			updates.put(AuthLibConfig.INSERT_USER_SOCIAL, new ArrayList<Object>() {{
@@ -457,7 +457,7 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 				add(((UserLocal)user).getFirstName());
 				add(((UserLocal)user).getLastName());
 				add(((UserLocal)user).getEmail());
-				add(((UserLocal)user).getPassword());
+				add(((UserLocal)user).getEncodedPassword());
 				add(user.getId());
 			}});
 		}else{

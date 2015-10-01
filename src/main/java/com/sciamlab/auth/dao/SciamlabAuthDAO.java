@@ -15,8 +15,6 @@
  */
 
 package com.sciamlab.auth.dao;
-import org.apache.log4j.Logger;
-
 import com.sciamlab.auth.model.User;
 
 /**
