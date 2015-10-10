@@ -15,7 +15,7 @@ import org.glassfish.jersey.server.ContainerRequest;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.sciamlab.auth.dao.SciamlabAuthDAO;
+import com.sciamlab.auth.dao.UserValidator;
 import com.sciamlab.auth.model.User;
 import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.exception.BadRequestException;
@@ -35,12 +35,12 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
     
     private final String api_name;
     private final Map<String,Long> speed_limit_throttling_plans;
-    private final SciamlabAuthDAO dao;
+    private final UserValidator user_validator;
     
     private SpeedRateThrottlingFilter(SpeedRateThrottlingFilterBuilder builder) { 
     	logger.info("Initializing "+DailyRateThrottlingFilter.class.getSimpleName()+"...");
     	this.api_name = builder.api_name;
-    	this.dao = builder.dao;
+    	this.user_validator = builder.user_validator;
     	this.speed_limit_throttling_plans = builder.speed_limit_throttling_plans;
     	//initializing plans related caches
     	for(String plan : this.speed_limit_throttling_plans.keySet()){
@@ -79,7 +79,7 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
 	    		logger.warn("Missing key in filter "+this.getClass().getSimpleName());
 	    		return;
 	    	}
-	        User user = dao.validate(jwt); 
+	        User user = user_validator.validate(jwt); 
 	        if(user==null){
 	    		logger.warn("No session found for user in filter "+this.getClass().getSimpleName());
 	    		return;
@@ -107,16 +107,16 @@ public class SpeedRateThrottlingFilter implements ContainerRequestFilter {
 	public static class SpeedRateThrottlingFilterBuilder{
 		
     	private final String api_name;
-    	private final SciamlabAuthDAO dao;
+    	private final UserValidator user_validator;
     	private Map<String,Long> speed_limit_throttling_plans;
 		
-		public static SpeedRateThrottlingFilterBuilder newBuilder(String api_name, SciamlabAuthDAO dao){
-			return new SpeedRateThrottlingFilterBuilder(api_name, dao);
+		public static SpeedRateThrottlingFilterBuilder init(String api_name, UserValidator user_validator){
+			return new SpeedRateThrottlingFilterBuilder(api_name, user_validator);
 		}
 		
-		private SpeedRateThrottlingFilterBuilder(String api_name, SciamlabAuthDAO dao) {
+		private SpeedRateThrottlingFilterBuilder(String api_name, UserValidator user_validator) {
 			super();
-			this.dao = dao;
+			this.user_validator = user_validator;
 			this.api_name = api_name;
 			this.speed_limit_throttling_plans = new HashMap<String, Long>(){{put(AuthLibConfig.API_BASIC_PROFILE,AuthLibConfig.API_BASIC_PROFILE_SPEED);}};
 		}

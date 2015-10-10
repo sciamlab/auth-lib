@@ -48,23 +48,24 @@ import com.sciamlab.common.util.SciamlabStringUtils;
  *
  */
 
-public abstract class SciamlabRemoteAuthDAO extends SciamlabDAO implements SciamlabAuthDAO{
+public class SciamlabUserRemoteValidator implements UserValidator{
 	
-	private static final Logger logger = Logger.getLogger(SciamlabRemoteAuthDAO.class);
+	private static final Logger logger = Logger.getLogger(SciamlabUserRemoteValidator.class);
 	
 	private HTTPClient http = new HTTPClient();
 	
-//	@Override
-//	public User getUserByApiKey(final String apikey) {
-//		throw new RuntimeException("method not implemented yet!");
-//	}
+	private final String JWT_VALIDATION_ENDPOINT;
+	
+	public SciamlabUserRemoteValidator(String JWT_VALIDATION_ENDPOINT) {
+		this.JWT_VALIDATION_ENDPOINT = JWT_VALIDATION_ENDPOINT;
+	}
 	
 	@Override
 	public User validate(final String jwt){
 		String result;
 		try {
-			logger.debug("Invoking remote auth service... ["+AuthLibConfig.JWT_VALIDATION_ENDPOINT+"]");
-			result = this.http.doGET(new URL(AuthLibConfig.JWT_VALIDATION_ENDPOINT), null,
+			logger.debug("Invoking remote auth service... ["+JWT_VALIDATION_ENDPOINT+"]");
+			result = this.http.doGET(new URL(JWT_VALIDATION_ENDPOINT), null,
 					new MultivaluedHashMap<String, String>(){{
 						put("Authorization", new ArrayList<String>(){{ add(jwt); }});
 					}}).readEntity(String.class);

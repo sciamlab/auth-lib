@@ -11,7 +11,7 @@ import org.apache.log4j.Logger;
 import org.glassfish.jersey.server.ContainerRequest;
 
 import com.sciamlab.auth.SciamlabSecurityContext;
-import com.sciamlab.auth.dao.SciamlabAuthDAO;
+import com.sciamlab.auth.dao.UserValidator;
 import com.sciamlab.auth.model.User;
 import com.sciamlab.common.exception.BadRequestException;
 import com.sciamlab.common.exception.InternalServerErrorException;
@@ -19,15 +19,15 @@ import com.sciamlab.common.exception.SciamlabWebApplicationException;
 import com.sciamlab.common.exception.UnauthorizedException;
 
 @Priority(Priorities.AUTHENTICATION)
-public class JWTSecurityFilter implements ContainerRequestFilter {
+public class TokenBasedSecurityFilter implements ContainerRequestFilter {
 
-	private static final Logger logger = Logger.getLogger(JWTSecurityFilter.class);
+	private static final Logger logger = Logger.getLogger(TokenBasedSecurityFilter.class);
 	
-	private final SciamlabAuthDAO dao;
+	private final UserValidator user_validator;
 	
-	private JWTSecurityFilter(JWTSecurityFilterBuilder builder) { 
-    	logger.info("Initializing "+JWTSecurityFilter.class.getSimpleName()+"...");
-    	this.dao = builder.dao;
+	private TokenBasedSecurityFilter(TokenBasedSecurityFilterBuilder builder) { 
+    	logger.info("Initializing "+TokenBasedSecurityFilter.class.getSimpleName()+"...");
+    	this.user_validator = builder.user_validator;
     	logger.info("[DONE]");
     }
 
@@ -43,7 +43,7 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
 	        }
 	        if(jwt==null)
 	        	throw new BadRequestException("Missing Authorization key");
-	        User user = dao.validate(jwt); 
+	        User user = user_validator.validate(jwt); 
 	        if(user==null)
 	        	throw new UnauthorizedException("No session found for user");
 			request.setSecurityContext(new SciamlabSecurityContext(user));
@@ -57,21 +57,21 @@ public class JWTSecurityFilter implements ContainerRequestFilter {
 		}
     }
 
-    public static class JWTSecurityFilterBuilder{
+    public static class TokenBasedSecurityFilterBuilder{
 		
-    	private final SciamlabAuthDAO dao;
+    	private final UserValidator user_validator;
 		
-		public static JWTSecurityFilterBuilder newBuilder(SciamlabAuthDAO dao){
-			return new JWTSecurityFilterBuilder(dao);
+		public static TokenBasedSecurityFilterBuilder init(UserValidator user_validator){
+			return new TokenBasedSecurityFilterBuilder(user_validator);
 		}
 		
-		private JWTSecurityFilterBuilder(SciamlabAuthDAO dao) {
+		private TokenBasedSecurityFilterBuilder(UserValidator user_validator) {
 			super();
-			this.dao = dao;
+			this.user_validator = user_validator;
 		}
 
-		public JWTSecurityFilter build() {
-			return new JWTSecurityFilter(this);
+		public TokenBasedSecurityFilter build() {
+			return new TokenBasedSecurityFilter(this);
 		}
     }
 }

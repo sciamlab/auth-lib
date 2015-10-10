@@ -1,20 +1,5 @@
-/**
- * Copyright 2014 Sciamlab s.r.l.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *    http://www.apache.org/licenses/LICENSE-2.0
- *    
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.sciamlab.auth.dao;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,14 +25,24 @@ import com.sciamlab.common.exception.DAOException;
 import com.sciamlab.common.util.SciamlabTokenUtils;
 
 /**
+ * Copyright 2014 Sciamlab s.r.l.
  * 
- * @author SciamLab
- *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *    
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements SciamlabAuthDAO {
+public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserValidator, UserDAO {
 	
-	private static final Logger logger = Logger.getLogger(SciamlabLocalAuthDAO.class);
+	private static final Logger logger = Logger.getLogger(SciamlabLocalUserDAO.class);
 	private static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
 	private static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
 	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
@@ -132,8 +127,6 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 				((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
 				((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 			}
-			u.setApiKey(p.getProperty("api_key"));
-			u.setId(p.getProperty("id"));
 			u.getRoles().clear();
 			u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
 			u.getProfiles().clear();
@@ -527,5 +520,5 @@ public abstract class SciamlabLocalAuthDAO extends SciamlabDAO implements Sciaml
 		removeCache(user.getId());
 		return count==1;
 	}
-	
+
 }

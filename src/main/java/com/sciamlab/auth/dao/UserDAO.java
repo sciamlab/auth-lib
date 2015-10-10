@@ -15,6 +15,10 @@
  */
 
 package com.sciamlab.auth.dao;
+import java.util.List;
+import java.util.Map;
+
+import com.sciamlab.auth.model.Role;
 import com.sciamlab.auth.model.User;
 
 /**
@@ -23,33 +27,17 @@ import com.sciamlab.auth.model.User;
  *
  */
 
-public interface SciamlabAuthDAO {//extends SciamlabDAO{
+public interface UserDAO {
 	
-//	private static final Logger logger = Logger.getLogger(SciamlabAuthDAO.class);
+//	public User getUserByName(String name);
 	
-//	public User getUserByApiKey(String apikey);
+	public User getUserByApiKey(String apikey);
 	
-	/**
-	 * checks if the given token is bound to an active user session
-	 * @param jwt
-	 * @return the logged user, if any, or null if the given JWT doesn't refer to any user
-	 */
-	public User validate(String jwt);
-//	public User getUserByApiKey(String apikey) {
-//		return this.getUser("apikey", apikey);
-//	}
+//	public User getUser(String col_key, final String col_value);
 	
-////	public User getUserByName(String name) {
-////		return this.getUser("name", name);
-////	}
+//	public List<User> getUserList();
 	
-//	public User getUserById(String id) {
-//		return this.getUser("id", id);
-//	}
-	
-//	abstract public List<User> getUserList();
-//	abstract public User getUser(final String col_key, final String col_value);
-//	abstract public List<Role> getRolesByUserId(final String id);
+	public List<Role> getRolesByUserId(final String id);
 	
 	/**
 	 * get the user profiles on all the apis
@@ -57,7 +45,7 @@ public interface SciamlabAuthDAO {//extends SciamlabDAO{
 	 * @param user_id
 	 * @return a map where the keys are the api names and the values are the related profiles
 	 */
-//	abstract public Map<String, String> getProfilesByUserId(final String user_id);
+	public Map<String, String> getProfilesByUserId(final String user_id);
 	
 	/**
 	 * set the user profile on the given api
@@ -67,7 +55,7 @@ public interface SciamlabAuthDAO {//extends SciamlabDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-//	abstract public int setUserAPIProfile(final String user_id, final String api, final String profile);
+	public User setUserProductProfile(final String user_id, final String api, final String profile);
 	
 	/**
 	 * delete the user profile on the given api
@@ -77,5 +65,5 @@ public interface SciamlabAuthDAO {//extends SciamlabDAO{
 	 * @param profile
 	 * @return number of updated records
 	 */
-//	abstract public int deleteUserAPIProfile(final String user_id, final String api);
+	public User deleteUserProductProfile(final String user_id, final String api);
 }

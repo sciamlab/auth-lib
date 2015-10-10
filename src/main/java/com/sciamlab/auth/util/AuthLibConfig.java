@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.Key;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,6 @@ public class AuthLibConfig {
 	
 	private static final Logger logger = Logger.getLogger(AuthLibConfig.class);
 
-	
 	public static final String DEFAULT_PROPS_FILE = "auth.properties";
 
 	public static String GET_USER_BY_ID;
@@ -51,20 +51,15 @@ public class AuthLibConfig {
 
 	public static final Key JWT_KEY = new AesKey(ByteUtil.randomBytes(16));
 	public static String JWT_VALIDATION_ENDPOINT;
-
 	public static String API_KEY_VALIDATION_ENDPOINT;
-	public static String API_KEY_INTERNAL;
+	
 	public static int SESSION_DATE_OFFSET_IN_MINUTES = 15;
     public static int ACCESS_TOKEN_LIFETIME_IN_MILLIS = 5000;
-    
-    public static Map<String, Long> SPEED_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_SPEED);}};
-    public static Map<String, Long> DAILY_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_DAILY);}};
     
     public static int THROTTLING_USERS_CACHE_LIFETIME_IN_MINUTES = 20;
     //cache to store users profiles (refreshed every 20 minutes)
     public static Cache<String, String> usersCache = CacheBuilder.newBuilder().expireAfterWrite(AuthLibConfig.THROTTLING_USERS_CACHE_LIFETIME_IN_MINUTES, TimeUnit.MINUTES).build();
     
-    public static String API_NAME;
     public static List<String> API_LIST = new ArrayList<String>(){{
     	add("ckan");
     	add("entilocali");
@@ -74,41 +69,31 @@ public class AuthLibConfig {
     public static String API_BASIC_PROFILE = "basic";
     public static Long API_BASIC_PROFILE_SPEED = 5000L;
     public static Long API_BASIC_PROFILE_DAILY = 500L;
-    
-    public static String HEADER_AUTHORIZATION_FIELD = "Authorization";
-    public static String QUERY_AUTHORIZATION_FIELD = "key";
-    
-    
-    public static String INTERNAL_SHARED_KEY;
-    public static String INTERNAL_USER_ID;
-    public static String ACCESS_TOKEN_VALIDATION_ENDPOINT;
+
+    public static Map<String, Long> SPEED_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_SPEED);}};
+    public static Map<String, Long> DAILY_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_DAILY);}};
     
     /*
-     * those are used only by ckan4jwebapidao (going to be deprecated)
+     * those are used only by CKANLocalUserDAO (to be deprecated)
      */
     public static String USERS_TABLE_NAME;
     public static String ROLES_TABLE_NAME;
     public static String PROFILES_TABLE_NAME;
     public static String USERS_SOCIAL_TABLE_NAME;
 
-    static{
+	public static void init(String module_name){
 		//loading properties
 		try {
-			loadProps();
+			loadProps(module_name);
 			logger.info("Properties loading completed");
 		} catch (Exception e) {
 			logger.error("Error loading properties", e);
 			throw new RuntimeException(e);
 		}
-	} 
-    
-    /**
-	 * this is just to force the loading of static properties
-	 */
-	public static void init(){}
+	}
 
-    public static void loadProps() throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
-		try (InputStream is = SciamlabStreamUtils.getInputStream(System.getProperty("props_filepath", DEFAULT_PROPS_FILE));){
+    public static void loadProps(String module_name) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
+		try (InputStream is = SciamlabStreamUtils.getInputStream(DEFAULT_PROPS_FILE);){
 			Properties prop = new Properties();
 			prop.load(is);
 			
@@ -141,6 +126,18 @@ public class AuthLibConfig {
 			CHECK_USER_SOCIAL_DELETED = prop.getProperty("check_user_social_deleted");
 			
 			JWT_VALIDATION_ENDPOINT = prop.getProperty("jwt.validation.endpoint");
+			API_KEY_VALIDATION_ENDPOINT = prop.getProperty("apikey.validation.endpoint");
+			
+			String plans_string = prop.getProperty("api.plans");
+			if(plans_string!=null){
+				List<String> plans = Arrays.asList(plans_string.split(","));
+				for(String p : plans){
+					SPEED_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.speed"))?prop.getProperty(module_name+"."+p+".limit.speed"):prop.getProperty("api."+p+".limit.speed"))); 
+					DAILY_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.daily"))?prop.getProperty(module_name+"."+p+".limit.daily"):prop.getProperty("api."+p+".limit.daily")));
+				}
+				logger.info("SPEED_LIMIT_THROTTLING_PLANS: "+SPEED_LIMIT_THROTTLING_PLANS);
+				logger.info("DAILY_LIMIT_THROTTLING_PLANS: "+DAILY_LIMIT_THROTTLING_PLANS);
+			}
 			
 			USERS_TABLE_NAME = prop.getProperty("db.table.users");
 			USERS_SOCIAL_TABLE_NAME = prop.getProperty("db.table.users_social");
