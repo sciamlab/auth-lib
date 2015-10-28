@@ -17,6 +17,7 @@ import org.jose4j.lang.ByteUtil;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.sciamlab.auth.model.Role;
 import com.sciamlab.common.util.SciamlabStreamUtils;
 
 public class AuthLibConfig {
@@ -29,6 +30,14 @@ public class AuthLibConfig {
 	public static String GET_USER_BY_API_KEY;
     public static String GET_USERS_LIST;
     public static String GET_ROLES_BY_USER_ID;
+    public static String GET_ROLE_BY_NAME;
+    public static String GET_ROLES_LIST;
+    public static String INSERT_ROLE;
+    public static String UPDATE_ROLE;
+    public static String DELETE_ROLE;
+    public static String GET_ROLE_TO_ROLE_LIST;
+    public static String INSERT_ROLE_TO_ROLE;
+    public static String DELETE_ROLE_TO_ROLE;
     public static String GET_PRODUCTS_LIST;
     public static String GET_PROFILES_BY_USER_ID;
     public static String INSERT_USER_PRODUCT_PROFILE;
@@ -80,6 +89,16 @@ public class AuthLibConfig {
     public static String ROLES_TABLE_NAME;
     public static String PROFILES_TABLE_NAME;
     public static String USERS_SOCIAL_TABLE_NAME;
+    
+    /**
+	 * that map represents the role available in CKAN
+	 */
+    public static Map<String, Role> CKAN_ROLES = new HashMap<String, Role>(){{
+    	put("ADMIN", new Role("admin"));
+    	put("READER", new Role("reader"));
+    	put("EDITOR", new Role("editor")); 
+    	put("ANONYMOUS", Role.ANONYMOUS); 
+    }};
 
 	public static void init(String module_name){
 		//loading properties
@@ -105,6 +124,14 @@ public class AuthLibConfig {
 			GET_USER_BY_ID = prop.getProperty("get_user_by_id");
 			GET_USERS_LIST = prop.getProperty("get_users_list");
 			GET_ROLES_BY_USER_ID = prop.getProperty("get_roles_by_user_id");
+			GET_ROLES_LIST = prop.getProperty("get_roles");
+			GET_ROLE_BY_NAME = prop.getProperty("get_role_by_name");
+			INSERT_ROLE = prop.getProperty("insert_role");
+			UPDATE_ROLE = prop.getProperty("update_role");
+			DELETE_ROLE = prop.getProperty("delete_role");
+			GET_ROLE_TO_ROLE_LIST = prop.getProperty("get_role_to_role");
+			INSERT_ROLE_TO_ROLE = prop.getProperty("insert_role_to_role");
+			DELETE_ROLE_TO_ROLE = prop.getProperty("delete_role_to_role");
 			GET_PRODUCTS_LIST = prop.getProperty("get_product_list");
 			GET_PROFILES_BY_USER_ID = prop.getProperty("get_profiles_by_user_id");
 			DELETE_USER_PRODUCT_PROFILE = prop.getProperty("delete_user_product_profile");

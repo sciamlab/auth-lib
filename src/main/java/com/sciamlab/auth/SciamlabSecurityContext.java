@@ -28,14 +28,14 @@ public class SciamlabSecurityContext implements SecurityContext {
 
     @Override
     public boolean isUserInRole(String role) {
-    	if(role.equalsIgnoreCase(Role.anonymous.name()))
+    	if(role.equalsIgnoreCase(Role.ANONYMOUS.getName()))
              return true;
 
     	if(user == null)
             throw new ForbiddenException();
 
-    	for(Role r : user.getRoles()){
-        	if(r.toString().equalsIgnoreCase(role))
+    	for(Role r : user.getAllRoles()){
+        	if(r.getName().equalsIgnoreCase(role))
         		return true;
         }
         return false;

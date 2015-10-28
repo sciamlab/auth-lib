@@ -1,3 +1,6 @@
+package com.sciamlab.auth.dao;
+import com.sciamlab.auth.model.User;
+
 /**
  * Copyright 2014 Sciamlab s.r.l.
  * 
@@ -14,15 +17,6 @@
  * limitations under the License.
  */
 
-package com.sciamlab.auth.dao;
-import com.sciamlab.auth.model.User;
-
-/**
- * 
- * @author SciamLab
- *
- */
-
 public interface UserValidator {
 	
 	/**
@@ -31,4 +25,5 @@ public interface UserValidator {
 	 * @return the logged user, if any, or null if the given token doesn't refer to any user
 	 */
 	public User validate(String token);
+	
 }

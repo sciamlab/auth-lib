@@ -16,10 +16,7 @@
 
 package com.sciamlab.auth.model;
 
-import java.security.Principal;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,7 +26,7 @@ import org.json.JSONString;
 
 import com.sciamlab.auth.util.AuthLibConfig;
 
-public abstract class User implements JSONString, Principal{
+public abstract class User extends Member {
 	
 	public static final String LOCAL 	= "local";
 	public static final String FACEBOOK = "facebook";
@@ -41,52 +38,37 @@ public abstract class User implements JSONString, Principal{
 		put(LOCAL,LOCAL); put(FACEBOOK,FACEBOOK); put(GPLUS,GPLUS); put(GITHUB,GITHUB); put(TWITTER,TWITTER);
 	}};
 	
-	private String id;
-    private String api_key;
-
-    private List<Role> roles = new ArrayList<Role>();
+//    private List<Role> roles = new ArrayList<Role>();
     private Map<String, String> profiles = new HashMap<String, String>();
 
     private String apikey;
 
     public User() {
-        this.id = UUID.randomUUID().toString();
+    	super();
         this.apikey = UUID.randomUUID().toString();
-        addRole(Role.anonymous); //all users are anonymous until credentials are proved
+        this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
     }
     
-    public User(String id, String api_key) {
-        this.id = id;
-        this.apikey = api_key;
-        addRole(Role.anonymous); //all users are anonymous until credentials are proved
+    public User(String id) {
+        super(id);
+		this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
     }
     
     public abstract String getUserName();
     public abstract String getDisplayName();
     public abstract String getType();
     
-    public String getId() {
-		return id;
-	}
+    public void setId(String id){
+    	this.id = id;
+    }
     
-    public void setId(String id) {
-		this.id = id;
-	}
-    
-    public String getName() {
-        return this.getId();
+    @Override
+    protected void addMemberToRole(Role role) {
+        role.addMember(this);
     }
-
-	public List<Role> getRoles() {
-        return roles;
-    }
-
-    public void addRole(Role role) {
-        this.roles.add(role);
-    }
-
-    public boolean hasRole(Role role) {
-        return roles.contains(role);
+    @Override
+	protected void removeMemberFromRole(Role role) {
+        role.removeMember(this);
     }
     
     public Map<String, String> getProfiles() {
@@ -102,26 +84,9 @@ public abstract class User implements JSONString, Principal{
 		return (profile!=null)?profile:AuthLibConfig.API_BASIC_PROFILE;
 	}
 
-	public boolean equals(Object otherUser) {
-        boolean response = false;
-
-        if(otherUser == null) {
-            response = false;
-        }
-        else if(! (otherUser instanceof User)) {
-            response = false;
-        }
-        else {
-            if(((User)otherUser).getId().equals(this.getId())) {
-                response = true;
-            }
-        }
-
-        return response;
-    }
-
+	@Override
     public int hashCode() {
-        return getId().hashCode();
+        return id.hashCode();
     }
 
     public void setApiKey(String apikey) {
@@ -132,27 +97,32 @@ public abstract class User implements JSONString, Principal{
     	return this.apikey;
     }
     
+    public boolean equals(Object otherUser) {
+        if(otherUser == null) 
+        	return false;
+        else if(! (otherUser instanceof User))
+        	return false;
+        else if(((User)otherUser).getUserName().equals(this.getUserName()))
+        	return true;
+        return false;
+    }
+    
 	@Override
 	public String toString() {
 		return "User [id="+id+", user_name=" + getUserName() + ", display_name=" + getDisplayName() + ", user_type=" + getType() 
-				+ ", api_key=" + apikey + ", roles=" + roles + ", profiles=" + profiles + "]";
+				+ ", api_key=" + apikey + ", roles=" + getAllRoles() + ", profiles=" + profiles + "]";
 	}
 
 	@Override
-	public String toJSONString() {
-		return toJSON().toString();
-	}
-	
 	public JSONObject toJSON() {
-		JSONObject result = new JSONObject();
-		result.put("id", id);
+		JSONObject result = super.toJSON();
         result.put("user_name", getUserName());
         result.put("display_name", getDisplayName());
         result.put("user_type", getType());
         result.put("api_key", apikey);
         JSONArray json_roles = new JSONArray();
-		for(Role r : roles){
-			json_roles.put(r.name());
+		for(Role r : getAllRoles()){
+			json_roles.put(r.getName());
 		}
 		result.put("roles", json_roles);
 		JSONArray json_profiles = new JSONArray();

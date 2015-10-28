@@ -68,17 +68,17 @@ public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValida
 	private User buildUserFromResultSet(Properties p) {
 		User u = null;
 		if(p.containsKey("social")){
-			u = new UserSocial(p.getProperty("name"), p.getProperty("apikey"));
-			((UserSocial) u).setSocialType(UserSocial.TYPES.get(p.getProperty("social")));
+			u = new UserSocial(p.getProperty("name"), UserSocial.TYPES.get(p.getProperty("social")));
 			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 		}else{
-			u = new UserLocal(p.getProperty("name"), p.getProperty("apikey"));
+			u = new UserLocal(p.getProperty("name"));
 			((UserLocal) u).setFirstName(p.getProperty("fullname"));
 			((UserLocal) u).setEmail(p.getProperty("email"));
 			((UserLocal) u).setPassword(p.getProperty("password"));
 		}
-		u.getRoles().clear();
-		u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
+		u.setApiKey(p.getProperty("apikey"));
+		u.setId(p.getProperty("id"));
+		u.addRoles(this.getRolesByUserId(p.getProperty("id")));
 		u.getProfiles().clear();
 		u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
 		logger.debug("User: "+u);
@@ -89,22 +89,17 @@ public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValida
 		Map<String, Properties> map = this.execQuery("SELECT DISTINCT role FROM "+AuthLibConfig.ROLES_TABLE_NAME+" WHERE user_id = ?",
 				new ArrayList<Object>(){{ add(id); }}, "role", new ArrayList<String>());
 		List<Role> roles = new ArrayList<Role>();
-		if(map.size()==0) {
-			roles.add(Role.anonymous);
+		roles.add(Role.ANONYMOUS);
+		if(map.size()==0)
 			return roles;
-		}
-		
 		for(String r : map.keySet()){
-			Role role = Role.valueOf(r);
-			if(role!=null){
-				roles.add(role);
+			if(AuthLibConfig.CKAN_ROLES.containsKey(r.toUpperCase())){
+				roles.add(AuthLibConfig.CKAN_ROLES.get(r));
 				logger.debug("Role added: "+r);
 			}else{
 				logger.warn(r+"is not identified as a valid role!");
 			}
 		}
-		if(roles.isEmpty())
-			roles.add(Role.anonymous);
 		return roles;
 	}
 	

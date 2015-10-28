@@ -10,16 +10,14 @@ public class UserSocial extends User {
     private String socialDisplay;
     private String socialType;
 
-    public UserSocial() {
+    public UserSocial(String socialId, String socialType) {
         super();
-    }
-    
-    public UserSocial(String id, String api_key) {
-        super(id, api_key);
+        this.socialId = socialId;
+        this.socialType = socialType;
     }
     
     public String getUserName(){
-    	return this.socialUser;
+    	return this.socialId;
     }
     
     public String getDisplayName(){
@@ -42,10 +40,6 @@ public class UserSocial extends User {
 		return socialType;
 	}
 
-	public void setSocialType(String userType) {
-		this.socialType = userType;
-	}
-
 	public void setSocialDisplay(String socialDisplay) {
 		this.socialDisplay = socialDisplay;
 	}
@@ -66,31 +60,38 @@ public class UserSocial extends User {
 		return socialId;
 	}
 
-	public void setSocialId(String social_id) {
-		this.socialId = social_id;
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = super.hashCode();
+		result = prime * result
+				+ ((socialType == null) ? 0 : socialType.hashCode());
+		result = prime * result
+				+ ((socialUser == null) ? 0 : socialUser.hashCode());
+		return result;
 	}
 
-	public boolean equals(Object otherUser) {
-        boolean response = false;
-
-        if(otherUser == null) {
-            response = false;
-        }
-        else if(! (otherUser instanceof User)) {
-            response = false;
-        }
-        else {
-            if(((UserSocial)otherUser).getSocialId().equals(this.getSocialId())) {
-                response = true;
-            }
-        }
-
-        return response;
-    }
-
-    public int hashCode() {
-        return this.getSocialId().hashCode();
-    }
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		UserSocial other = (UserSocial) obj;
+		if (socialType == null) {
+			if (other.socialType != null)
+				return false;
+		} else if (!socialType.equals(other.socialType))
+			return false;
+		if (socialUser == null) {
+			if (other.socialUser != null)
+				return false;
+		} else if (!socialUser.equals(other.socialUser))
+			return false;
+		return true;
+	}
 
 	@Override
 	public String toString() {
@@ -98,11 +99,6 @@ public class UserSocial extends User {
 				+ ", social_display=" + socialDisplay + ", social_type=" + socialType + ", social_details=" + socialDetails + "]";
 	}
 
-	@Override
-	public String toJSONString() {
-		return toJSON().toString();
-	}
-	
 	public JSONObject toJSON() {
 		JSONObject result = super.toJSON();
         result.put("social_id", socialId);

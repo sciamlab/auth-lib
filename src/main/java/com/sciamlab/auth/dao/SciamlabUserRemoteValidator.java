@@ -1,19 +1,3 @@
-/**
- * Copyright 2014 Sciamlab s.r.l.
- * 
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *    http://www.apache.org/licenses/LICENSE-2.0
- *    
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.sciamlab.auth.dao;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -43,9 +27,19 @@ import com.sciamlab.common.util.SciamlabCollectionUtils;
 import com.sciamlab.common.util.SciamlabStringUtils;
 
 /**
+ * Copyright 2014 Sciamlab s.r.l.
  * 
- * @author SciamLab
- *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *    
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 public class SciamlabUserRemoteValidator implements UserValidator{
@@ -83,22 +77,23 @@ public class SciamlabUserRemoteValidator implements UserValidator{
 		json = json.getJSONObject("user"); 
 		User u = null;
 		if("local".equals(json.getString("user_type"))){
-			u = new UserLocal(json.getString("id"), json.getString("api_key"));
+			u = new UserLocal(json.getString("user_name"));
 			((UserLocal) u).setFirstName(json.getString("first_name"));
+			((UserLocal) u).setLastName(json.getString("last_name"));
 			((UserLocal) u).setEmail(json.getString("email"));
 		}else{
-			u = new UserSocial(json.getString("id"), json.getString("api_key"));
-			((UserSocial) u).setSocialType(UserSocial.TYPES.get(json.getString("user_type")));
+			u = new UserSocial(json.getString("social_id"), json.getString("social_type"));
+			((UserSocial) u).setSocialUser(json.getString("user_name"));
+			((UserSocial) u).setSocialDisplay(json.getString("social_display"));
 			((UserSocial) u).setSocialDetails(json.getJSONObject("social_details"));
 		}
-		u.getRoles().clear();
-		for(String r : SciamlabCollectionUtils.asStringList(json.getJSONArray("roles"))){
-			u.getRoles().add(Role.valueOf(r));
-		}
+		u.setId(json.getString("id"));
+		u.setApiKey(json.getString("api_key"));
+		for(String r : SciamlabCollectionUtils.asStringList(json.getJSONArray("roles")))
+			u.addRole(new Role(r));
 		u.getProfiles().clear();
-		for(Object p : SciamlabCollectionUtils.asList(json.getJSONArray("profiles"))){
+		for(Object p : SciamlabCollectionUtils.asList(json.getJSONArray("profiles")))
 			u.getProfiles().put(((JSONObject)p).getString("api"), ((JSONObject)p).getString("profile"));
-		}
 		logger.debug("User: "+u);
         return u;
 	}

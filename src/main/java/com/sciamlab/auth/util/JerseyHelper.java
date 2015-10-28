@@ -41,7 +41,7 @@ public class JerseyHelper {
 		        // DenyAll on the method take precedence over RolesAllowed and PermitAll
 		        if (am.isAnnotationPresent(DenyAll.class)) {
 		        	logger.info("["+resourceInfo.getResourceClass().getSimpleName()+"."+resourceInfo.getResourceMethod().getName()+"] ");
-		        	context.register(RolesAllowedSecurityFilterBuilder.newBuilder().build());
+		        	context.register(RolesAllowedSecurityFilterBuilder.newBuilder().denyAll().build());
 		            return;
 		        }
 		        // RolesAllowed on the method takes precedence over PermitAll
@@ -58,6 +58,7 @@ public class JerseyHelper {
 		        if (ra != null) {
 		        	logger.info("["+resourceInfo.getResourceClass().getSimpleName()+"."+resourceInfo.getResourceMethod().getName()+"] ");
 		        	context.register(RolesAllowedSecurityFilterBuilder.newBuilder().roles(Arrays.asList(ra.value())).build());
+		        	return;
 		        }
 			}
 		});

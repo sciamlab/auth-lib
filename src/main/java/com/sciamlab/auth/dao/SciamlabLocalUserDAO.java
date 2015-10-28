@@ -3,12 +3,15 @@ package com.sciamlab.auth.dao;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.jose4j.lang.JoseException;
@@ -44,16 +47,21 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalUserDAO.class);
 	private static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
+	private static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
 	private static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
 	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
 	private static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
 	private static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
 	private static List<String> PRODUCTS = new ArrayList<String>();
 	
-	public void buildCache(){
+	public void buildCache() {
 		//caching products on startup
 		getProductsList();
 		logger.debug("PRODUCTS: "+PRODUCTS);
+		//caching products on startup
+		getRolesList();
+		for(Role r : ROLES_BY_NAME.values())
+			logger.debug("ROLE: "+r);
 		//caching users on startup
 		getUsersList();
 		logger.debug("USERS:");
@@ -68,9 +76,9 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 			USERS_BY_TYPE.put(user.getType(), map);
 		}
 		map.put(user.getUserName(), user);
-		USERS_BY_ID.put(user.getId(), user);
+		USERS_BY_ID.put(user.id(), user);
 		USERS_BY_API_KEY.put(user.getApiKey(), user);
-		String jwt = LOGGED_USERS_REVERSE.get(user.getId());
+		String jwt = LOGGED_USERS_REVERSE.get(user.id());
 		if(jwt!=null)
 			LOGGED_USERS.put(jwt, user);
 		return user;
@@ -91,13 +99,13 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	
 	private static void addLoggedUser(String jwt, User user){
 		LOGGED_USERS.put(jwt, user);
-		LOGGED_USERS_REVERSE.put(user.getId(), jwt);
+		LOGGED_USERS_REVERSE.put(user.id(), jwt);
 	}
 	
 	private static boolean removeLoggedUser(String jwt){
 		User user = LOGGED_USERS.remove(jwt);
 		if(user!=null){
-			LOGGED_USERS_REVERSE.remove(user.getId());
+			LOGGED_USERS_REVERSE.remove(user.id());
 			return true;
 		}else{
 			return false;
@@ -105,30 +113,49 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	}
 	
 	/**
-	 * get the list of USERS_BY_TYPE
+	 * get the list of roles
 	 * 
-	 * @return the list of USERS_BY_TYPE
+	 * @return the list of roles
 	 */
-	public Collection<User> getUsersList() {
+	private Collection<Role> getRolesList() {
+		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_LIST);
+		for(Properties p : result){
+			Role role = new Role(p.getProperty("role"));
+			ROLES_BY_NAME.put(role.getName().toUpperCase(), role);
+		}
+		result = this.execQuery(AuthLibConfig.GET_ROLE_TO_ROLE_LIST);
+		for(Properties p : result){
+			Role role = ROLES_BY_NAME.get(p.getProperty("role_child").toUpperCase());
+			role.addRole(ROLES_BY_NAME.get(p.getProperty("role_parent").toUpperCase()));
+		}
+		return ROLES_BY_NAME.values();
+	}
+	
+	/**
+	 * get the list of users
+	 * 
+	 * @return the list of users
+	 */
+	private Collection<User> getUsersList() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USERS_LIST); 
 		for(Properties p : result){
 			User u = null;
 			if(User.LOCAL.equals(p.getProperty("type"))){
-				u = new UserLocal(p.getProperty("id"), p.getProperty("api_key"));
+				u = new UserLocal(p.getProperty("email"));
+				((UserLocal) u).setApiKey(p.getProperty("api_key"));
 				((UserLocal) u).setFirstName(p.getProperty("first_name"));
 				((UserLocal) u).setLastName(p.getProperty("last_name"));
 				((UserLocal) u).setEmail(p.getProperty("email"));
 				((UserLocal) u).setPassword(p.getProperty("password"));
 			}else{
-				u = new UserSocial(p.getProperty("id"), p.getProperty("api_key"));
-				((UserSocial) u).setSocialType(UserSocial.TYPES.get(p.getProperty("social")));
-				((UserSocial) u).setSocialId(p.getProperty("social_id"));
+				u = new UserSocial(p.getProperty("social_id"), UserSocial.TYPES.get(p.getProperty("social")));
+				((UserSocial) u).setApiKey(p.getProperty("api_key"));
 				((UserSocial) u).setSocialUser(p.getProperty("user_name"));
 				((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
 				((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 			}
-			u.getRoles().clear();
-			u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
+			u.setId(p.getProperty("id"));
+			u.addRoles(this.getRolesByUserId(p.getProperty("id")));
 			u.getProfiles().clear();
 			u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
 			logger.debug("User: "+u);
@@ -141,12 +168,56 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * 
 	 * @return the list of PRODUCTS
 	 */
-	public List<String> getProductsList() {
+	private List<String> getProductsList() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_PRODUCTS_LIST); 
 		for(Properties p : result){
 			PRODUCTS.add(p.getProperty("product"));
 		}
         return PRODUCTS;
+	}
+	
+	/**
+	 * get the cached list of products
+	 * 
+	 * @return the list of products
+	 */
+	public Collection<String> getCachedProductsList() {
+		return PRODUCTS;
+	}
+	/**
+	 * get the cached list of users
+	 * 
+	 * @return the list of users
+	 */
+	public Collection<User> getCachedUsersList() {
+		return USERS_BY_ID.values();
+	}
+	/**
+	 * get the cached list of roles
+	 * 
+	 * @return the list of roles
+	 */
+	public Collection<Role> getCachedRolesList() {
+		return ROLES_BY_NAME.values();
+	}
+	
+	/**
+	 * get the role by name
+	 * 
+	 * @param name
+	 * @return the role
+	 */
+	public Role getRoleByName(final String name){
+		if(ROLES_BY_NAME.containsKey(name.toUpperCase()))
+			return ROLES_BY_NAME.get(name.toUpperCase());
+		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLE_BY_NAME, new ArrayList<Object>(){{add(name);}}); 
+		if(result.size()==0) return null;
+		if(result.size()>1) 
+			throw new DAOException("Multiple roles retrieved for name "+name);
+		Role role = new Role(name).description(result.get(0).getProperty("description"));
+		logger.debug("Role: "+role);
+		ROLES_BY_NAME.put(name.toUpperCase(), role);
+		return role;
 	}
 	
 	/**
@@ -156,16 +227,17 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return the list of user roles
 	 */
 	public List<Role> getRolesByUserId(final String id) {
-		if(USERS_BY_ID.containsKey(id))
-			return USERS_BY_ID.get(id).getRoles();
-		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }});
-		List<Role> roles = new ArrayList<Role>();
-		if(result.size()==0) {
-			roles.add(Role.anonymous);
-			return roles;
+		Set<Role> roles = new HashSet<Role>();
+		if(USERS_BY_ID.containsKey(id)){
+			roles.addAll(USERS_BY_ID.get(id).getAllRoles());
+			return new ArrayList<Role>(roles);
 		}
+		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }});
+		roles.add(Role.ANONYMOUS);
+		if(result.size()==0) 
+			return new ArrayList<Role>(roles);
 		for(Properties p : result){
-			Role role = Role.valueOf(p.getProperty("role"));
+			Role role = ROLES_BY_NAME.get(p.getProperty("role").toUpperCase());
 			if(role!=null){
 				roles.add(role);
 				logger.debug("Role added: "+role);
@@ -173,9 +245,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 				logger.warn(p.getProperty("role")+" is not identified as a valid role!");
 			}
 		}
-		if(roles.isEmpty())
-			roles.add(Role.anonymous);
-		return roles;
+		return new ArrayList<Role>(roles);
 	}
 	
 	/**
@@ -187,11 +257,11 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 */
 	public User setUserRole(final String id, final Role role) {
 		int result = this.execUpdate(AuthLibConfig.UPDATE_USER_ROLE,
-				new ArrayList<Object>() {{ add(role.name()); add(new Timestamp(new Date().getTime())); add(id); add(role.name());}});
+				new ArrayList<Object>() {{ add(role.getName()); add(new Timestamp(new Date().getTime())); add(id); add(role.getName());}});
 		if(result==0){
 			//role not found for given product, need to insert
 			result = this.execUpdate(AuthLibConfig.INSERT_USER_ROLE,
-					new ArrayList<Object>() {{ add(id); add(role.name()); add(new Timestamp(new Date().getTime())); }});
+					new ArrayList<Object>() {{ add(id); add(role.getName()); add(new Timestamp(new Date().getTime())); }});
 		}else{
 			logger.warn("role "+role+" already set for user "+id);
 		}
@@ -208,7 +278,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 */
 	public User deleteUserRole(final String id, final Role role) {
 		int result = this.execUpdate(AuthLibConfig.DELETE_USER_ROLE,
-				new ArrayList<Object>() {{ add(id); add(role.name());}});
+				new ArrayList<Object>() {{ add(id); add(role.getName());}});
 		removeCache(id);
 		return updateCache(getUserById(id));
 	}
@@ -334,23 +404,20 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	private User buildUserFromResultSet(Properties p){
 		User u = null;
 		if(User.LOCAL.equals(p.getProperty("type"))){
-			u = new UserLocal(p.getProperty("id"), p.getProperty("api_key"));
+			u = new UserLocal(p.getProperty("email"));
 			((UserLocal) u).setFirstName(p.getProperty("first_name"));
 			((UserLocal) u).setLastName(p.getProperty("last_name"));
 			((UserLocal) u).setEmail(p.getProperty("email"));
 			((UserLocal) u).setPassword(p.getProperty("password"));
 		}else{
-			u = new UserSocial(p.getProperty("id"), p.getProperty("api_key"));
-			((UserSocial) u).setSocialType(UserSocial.TYPES.get(p.getProperty("social")));
-			((UserSocial) u).setSocialId(p.getProperty("social_id"));
+			u = new UserSocial(p.getProperty("social_id"), UserSocial.TYPES.get(p.getProperty("social")));
 			((UserSocial) u).setSocialUser(p.getProperty("user_name"));
 			((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
 			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 		}
 		u.setApiKey(p.getProperty("api_key"));
 		u.setId(p.getProperty("id"));
-		u.getRoles().clear();
-		u.getRoles().addAll(this.getRolesByUserId(p.getProperty("id")));
+		u.addRoles(this.getRolesByUserId(p.getProperty("id")));
 		u.getProfiles().clear();
 		u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
 		return u;
@@ -413,10 +480,10 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	public boolean addUser(final User user){
 		LinkedHashMap<String, List<Object>> updates = new LinkedHashMap<String, List<Object>>();
 		updates.put(AuthLibConfig.INSERT_USER, new ArrayList<Object>() {{ 
-			add(user.getId()); add(user.getApiKey()); add(user.getType()); add(new Timestamp(new Date().getTime()));}});
+			add(user.id()); add(user.getApiKey()); add(user.getType()); add(new Timestamp(new Date().getTime()));}});
 		if(User.LOCAL.equals(user.getType())){
 			updates.put(AuthLibConfig.INSERT_USER_LOCAL, new ArrayList<Object>() {{ 
-				add(user.getId());
+				add(user.id());
 				add(((UserLocal)user).getFirstName());
 				add(((UserLocal)user).getLastName());
 				add(((UserLocal)user).getEmail());
@@ -424,7 +491,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 			}});
 		}else{
 			updates.put(AuthLibConfig.INSERT_USER_SOCIAL, new ArrayList<Object>() {{
-				add(user.getId());
+				add(user.id());
 				add(((UserSocial)user).getType());
 				add(((UserSocial)user).getSocialId());
 				add(((UserSocial)user).getSocialUser());
@@ -451,17 +518,17 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 				add(((UserLocal)user).getLastName());
 				add(((UserLocal)user).getEmail());
 				add(((UserLocal)user).getEncodedPassword());
-				add(user.getId());
+				add(user.id());
 			}});
 		}else{
 			updates.put(AuthLibConfig.UPDATE_USER_SOCIAL, new ArrayList<Object>() {{ 
 				add(((UserSocial)user).getSocialUser());
 				add(((UserSocial)user).getSocialDisplay());
 				add(((UserSocial)user).getSocialDetails().toString());
-				add(user.getId());
+				add(user.id());
 			}});
 		}
-		updates.put(AuthLibConfig.UPDATE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.getId()); }});
+		updates.put(AuthLibConfig.UPDATE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.id()); }});
 		int count = this.execUpdate(updates);
 		updateCache(user);
 		//check with 2 since the list of updates contains 2 statements and we expect to update 1 row for each statement
@@ -516,9 +583,78 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return true if the delete is succeeded 
 	 */
 	public boolean deleteUser(final User user){
-		int count = this.execUpdate(AuthLibConfig.DELETE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.getId()); }});
-		removeCache(user.getId());
+		int count = this.execUpdate(AuthLibConfig.DELETE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.id()); }});
+		removeCache(user.id());
 		return count==1;
+	}
+	
+	/**
+	 * create or update a role
+	 * 
+	 * @param role, the role to be created
+	 * @return the created role
+	 */
+	public boolean upsertRole(final Role role) {
+		int result = this.execUpdate(AuthLibConfig.UPDATE_ROLE,
+				new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(role.description()); add(role.getName());}});
+		if(result==0){
+			//role not found for given role, need to insert
+			result = this.execUpdate(AuthLibConfig.INSERT_ROLE,
+					new ArrayList<Object>() {{ add(role.getName()); add(role.description()); add(new Timestamp(new Date().getTime())); }});
+		}
+		ROLES_BY_NAME.put(role.getName().toUpperCase(), role);
+		return result==1;
+	}
+	
+	/**
+	 * add a role parent to a role child
+	 * 
+	 * @param role, the role child
+	 * @param role, the role parent
+	 * @return true if successful
+	 */
+	public boolean addRoleToRole(final Role child, final Role parent) {
+		boolean result = ROLES_BY_NAME.get(child.getName().toUpperCase()).addRole(parent);
+		if(result)
+			this.execUpdate(AuthLibConfig.INSERT_ROLE_TO_ROLE,
+				new ArrayList<Object>() {{ add(child.getName()); add(parent.getName()); add(new Timestamp(new Date().getTime())); }});
+		return result;
+	}
+	
+	/**
+	 * delete a role parent to a role child
+	 * 
+	 * @param role, the role child
+	 * @param role, the role parent
+	 * @return true if successful
+	 */
+	public boolean deleteRoleToRole(final Role child, final Role parent) {
+		boolean result = ROLES_BY_NAME.get(child.getName().toUpperCase()).removeRole(parent);
+		if(result)
+			this.execUpdate(AuthLibConfig.DELETE_ROLE_TO_ROLE,
+				new ArrayList<Object>() {{ add(child.getName()); add(parent.getName());}});
+		return result;
+	}
+	
+	/**
+	 * delete the role
+	 * 
+	 * @param role, the role to be deleted
+	 * @return boolean
+	 */
+	public boolean deleteRole(final Role role) {
+		ROLES_BY_NAME.remove(role.getName().toUpperCase());
+		for(Role r : ROLES_BY_NAME.values())
+			if(r.hasRole(role))
+				r.removeRole(role);
+		for(User u : USERS_BY_ID.values())
+			if(u.hasRole(role)){
+				removeCache(u.id());
+				updateCache(getUserById(u.id()));
+			}
+		int result = this.execUpdate(AuthLibConfig.DELETE_ROLE,
+				new ArrayList<Object>() {{ add(role.getName()); }});
+		return result == 1;
 	}
 
 }

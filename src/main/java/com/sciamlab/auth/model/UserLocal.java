@@ -6,16 +6,13 @@ public class UserLocal extends User {
 	
     private String firstname;
     private String lastname;
+    private String username;
     private String email;
     private String password;
     
-    
-    public UserLocal() {
+    public UserLocal(String username) {
         super();
-    }
-    
-    public UserLocal(String id, String api_key) {
-        super(id, api_key);
+        this.username = username;
     }
     
     public String getType(){
@@ -23,14 +20,14 @@ public class UserLocal extends User {
     }
     
     public String getUserName(){
-    	return this.email;
+    	return this.username;
     }
     
     public String getDisplayName(){
     	String display = (this.firstname!=null) ? this.firstname : "";
     	display += (this.lastname!=null) ? " "+this.lastname : "";
     	if("".equals(display.trim()))
-    		display = email;
+    		display = username;
     	return display;
     }
     
@@ -72,24 +69,6 @@ public class UserLocal extends User {
         this.email = email;
     }
     
-	public boolean equals(Object otherUser) {
-        boolean response = false;
-
-        if(otherUser == null) {
-            response = false;
-        }
-        else if(! (otherUser instanceof User)) {
-            response = false;
-        }
-        else {
-            if(((UserLocal)otherUser).getEmail().equals(this.getEmail())) {
-                response = true;
-            }
-        }
-
-        return response;
-    }
-
     public int hashCode() {
         return this.getEmail().hashCode();
     }
@@ -100,11 +79,6 @@ public class UserLocal extends User {
 				+ ", email=" + email + ", password="	+ password + "]";
 	}
 
-	@Override
-	public String toJSONString() {
-		return toJSON().toString();
-	}
-	
 	public JSONObject toJSON() {
 		JSONObject result = super.toJSON();
         result.put("first_name", firstname);

@@ -13,6 +13,7 @@ import com.sciamlab.auth.model.Role;
 import com.sciamlab.auth.model.User;
 import com.sciamlab.auth.model.UserLocal;
 import com.sciamlab.auth.model.UserSocial;
+import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.exception.DAOException;
 import com.sciamlab.common.util.HTTPClient;
 import com.sciamlab.common.util.SciamlabCollectionUtils;
@@ -68,23 +69,23 @@ public class CKANUserRemoteValidator implements UserValidator{
 		
         User u = null;
 		if("local".equals(json.getString("user_type"))){
-			u = new UserLocal(json.getString("id"), json.getString("api_key"));
+			u = new UserLocal(json.getString("user_name"));
 			((UserLocal) u).setFirstName(json.optString("first_name"));
 			((UserLocal) u).setEmail(json.getString("email"));
 		}else{
-			u = new UserSocial(json.getString("id"), json.getString("api_key"));
-			((UserSocial) u).setSocialType(UserSocial.TYPES.get(json.getString("user_type")));
+			u = new UserSocial(json.getString("user_name"), UserSocial.TYPES.get(json.getString("user_type")));
 			((UserSocial) u).setSocialDetails(json.getJSONObject("social_details"));
+			((UserSocial) u).setSocialDisplay(json.getString("display_name"));
 		}
-		u.getRoles().clear();
-		for(String r : SciamlabCollectionUtils.asStringList(json.getJSONArray("roles"))){
-			u.getRoles().add(Role.valueOf(r));
-		}
+		u.setId(json.getString("id"));
+		u.setApiKey(json.getString("api_key"));
+		for(String r : SciamlabCollectionUtils.asStringList(json.getJSONArray("roles")))
+			u.addRole(AuthLibConfig.CKAN_ROLES.get(r.toUpperCase()));
 		u.getProfiles().clear();
-		for(Object p : SciamlabCollectionUtils.asList(json.getJSONArray("profiles"))){
+		for(Object p : SciamlabCollectionUtils.asList(json.getJSONArray("profiles")))
 			u.getProfiles().put(((JSONObject)p).getString("api"), ((JSONObject)p).getString("profile"));
-		}
 		logger.debug("User: "+u);
         return u;
 	}
+
 }

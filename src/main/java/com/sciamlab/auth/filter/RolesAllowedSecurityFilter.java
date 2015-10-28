@@ -61,8 +61,8 @@ public class RolesAllowedSecurityFilter  implements ContainerRequestFilter {
 			return this;
 		}
 		
-		public RolesAllowedSecurityFilterBuilder denyAll(boolean denyAll) {
-			this.denyAll = denyAll;
+		public RolesAllowedSecurityFilterBuilder denyAll() {
+			this.denyAll = true;
 			return this;
 		}
 
