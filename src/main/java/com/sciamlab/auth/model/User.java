@@ -46,12 +46,12 @@ public abstract class User extends Member {
     public User() {
     	super();
         this.apikey = UUID.randomUUID().toString();
-        this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
+//        this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
     }
     
     public User(String id) {
         super(id);
-		this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
+//		this.addRole(Role.ANONYMOUS); //all users are anonymous until credentials are proved
     }
     
     public abstract String getUserName();

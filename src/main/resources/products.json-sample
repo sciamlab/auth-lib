@@ -1,0 +1,21 @@
+{
+	"indicepa": {
+		"label":"Indice PA (monthly subscription)", 
+		"amount":10.0, 
+		"recurring":true, 
+		"period": "Month", 
+		"duration": 12
+	},"entilocali": {
+		"label":"Enti locali (daily subscription)", 
+		"amount":20.0, 
+		"recurring":true, 
+		"period": "Day", 
+		"duration": 7
+	},"ckan": {
+		"label":"OpenDataHub CKAN", 
+		"amount":30.0
+	},"eurovoc": {
+		"label":"Eurovoc classification", 
+		"amount":40.0
+	}
+}

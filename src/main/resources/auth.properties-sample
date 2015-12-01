@@ -1,6 +1,14 @@
 jwt.validation.endpoint = http://localhost:8080/amaca/user/manager/user/validate
 apikey.validation.endpoint = http://localhost:8080/ckan4j/webapi/user/validate
 
+api.plans = basic,gold,platinum
+api.basic.limit.speed = 5000
+api.basic.limit.daily = 500
+api.gold.limit.speed = 1000
+api.gold.limit.daily = 5000
+api.platinum.limit.speed = 10
+api.platinum.limit.daily = 10000
+
 insert_user = INSERT INTO users (id, api_key, type, created, active) VALUES (?, ?, ?, ?, 'true')
 insert_user_local = INSERT INTO local (user_id, first_name, last_name, email, password) VALUES (?, ?, ?, ?, ?)
 insert_user_social = INSERT INTO social (user_id, social, social_id, user_name, display_name, details) VALUES (?, ?, ?, ?, ?, to_json(?::json))

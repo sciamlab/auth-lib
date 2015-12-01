@@ -18,6 +18,7 @@ import com.sciamlab.auth.model.UserSocial;
 import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.dao.SciamlabDAO;
 import com.sciamlab.common.exception.DAOException;
+import com.sciamlab.common.util.SciamlabCollectionUtils;
 
 public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValidator, UserDAO {
 	
@@ -113,7 +114,7 @@ public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValida
 		Map<String, Properties> result = this.execQuery("SELECT DISTINCT api,profile FROM "+AuthLibConfig.PROFILES_TABLE_NAME+" WHERE user_id = ?", 
 				new ArrayList<Object>(){{ add(user_id); }}, "api", new ArrayList<String>(){{ add("api"); add("profile"); }});
 		Map<String, String> profiles = new HashMap<String, String>();
-		for(String api : AuthLibConfig.API_LIST){
+		for(String api : SciamlabCollectionUtils.asJSONObjectMap(AuthLibConfig.PRODUCTS).keySet()){
 			String profile = (result.containsKey(api)) ? result.get(api).getProperty("profile") : AuthLibConfig.API_BASIC_PROFILE;
 			profiles.put(api, profile);
 		}

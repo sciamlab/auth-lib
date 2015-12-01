@@ -14,10 +14,12 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 import org.jose4j.keys.AesKey;
 import org.jose4j.lang.ByteUtil;
+import org.json.JSONObject;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sciamlab.auth.model.Role;
+import com.sciamlab.common.exception.InternalServerErrorException;
 import com.sciamlab.common.util.SciamlabStreamUtils;
 
 public class AuthLibConfig {
@@ -69,16 +71,14 @@ public class AuthLibConfig {
     //cache to store users profiles (refreshed every 20 minutes)
     public static Cache<String, String> usersCache = CacheBuilder.newBuilder().expireAfterWrite(AuthLibConfig.THROTTLING_USERS_CACHE_LIFETIME_IN_MINUTES, TimeUnit.MINUTES).build();
     
-    public static List<String> API_LIST = new ArrayList<String>(){{
-    	add("ckan");
-    	add("entilocali");
-    	add("eurovoc");
-    	add("indicepa");
-    }};
-    public static String API_BASIC_PROFILE = "basic";
-    public static Long API_BASIC_PROFILE_SPEED = 5000L;
-    public static Long API_BASIC_PROFILE_DAILY = 500L;
+    private static String PRODUCTS_FILE;
+	public static JSONObject PRODUCTS; 
 
+	public static final String API_BASIC_PROFILE = "basic";
+    public static final Long API_BASIC_PROFILE_SPEED = 5000L;
+    public static final Long API_BASIC_PROFILE_DAILY = 500L;
+    public static List<String> API_PLANS = new ArrayList<String>(){{add(API_BASIC_PROFILE);}};
+    
     public static Map<String, Long> SPEED_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_SPEED);}};
     public static Map<String, Long> DAILY_LIMIT_THROTTLING_PLANS = new HashMap<String, Long>(){{put(API_BASIC_PROFILE,API_BASIC_PROFILE_DAILY);}};
     
@@ -109,6 +109,17 @@ public class AuthLibConfig {
 			logger.error("Error loading properties", e);
 			throw new RuntimeException(e);
 		}
+		//loading products
+		if(PRODUCTS_FILE!=null){
+			try{
+				PRODUCTS = new JSONObject(SciamlabStreamUtils.convertStreamToString(SciamlabStreamUtils.getInputStream(PRODUCTS_FILE)));
+				logger.info("Products loading completed");
+			} catch (Exception e) {
+				logger.error("Error loading products", e);
+				throw new RuntimeException(e);
+			}
+		}
+		logger.info("DONE");
 	}
 
     public static void loadProps(String module_name) throws IOException, InstantiationException, IllegalAccessException, ClassNotFoundException {
@@ -155,12 +166,15 @@ public class AuthLibConfig {
 			JWT_VALIDATION_ENDPOINT = prop.getProperty("jwt.validation.endpoint");
 			API_KEY_VALIDATION_ENDPOINT = prop.getProperty("apikey.validation.endpoint");
 			
-			String plans_string = prop.getProperty("api.plans");
-			if(plans_string!=null){
-				List<String> plans = Arrays.asList(plans_string.split(","));
-				for(String p : plans){
-					SPEED_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.speed"))?prop.getProperty(module_name+"."+p+".limit.speed"):prop.getProperty("api."+p+".limit.speed"))); 
-					DAILY_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.daily"))?prop.getProperty(module_name+"."+p+".limit.daily"):prop.getProperty("api."+p+".limit.daily")));
+			PRODUCTS_FILE = prop.getProperty("products");//, "products.json");
+			
+			if(prop.containsKey("api.plans")){
+				API_PLANS = Arrays.asList(prop.getProperty("api.plans").split(","));
+				for(String p : API_PLANS){
+					//default to 5000
+					SPEED_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.speed"))?prop.getProperty(module_name+"."+p+".limit.speed"):prop.getProperty("api."+p+".limit.speed", "5000")));
+					//default to 500
+					DAILY_LIMIT_THROTTLING_PLANS.put(p,Long.parseLong((prop.containsKey(module_name+"."+p+".limit.daily"))?prop.getProperty(module_name+"."+p+".limit.daily"):prop.getProperty("api."+p+".limit.daily", "500")));
 				}
 				logger.info("SPEED_LIMIT_THROTTLING_PLANS: "+SPEED_LIMIT_THROTTLING_PLANS);
 				logger.info("DAILY_LIMIT_THROTTLING_PLANS: "+DAILY_LIMIT_THROTTLING_PLANS);

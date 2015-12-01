@@ -32,10 +32,6 @@ public abstract class Member implements Principal, JSONString{
         return id;
     }
     
-//    public Collection<Role> getDirectRoles() {
-//        return roleParents;
-//    }
-    
     public void addRoles(Collection<Role> roles) {
     	for(Role role : roles)
     		this.addRole(role);

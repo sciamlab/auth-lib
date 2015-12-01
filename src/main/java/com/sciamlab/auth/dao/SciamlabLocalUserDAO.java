@@ -2,9 +2,10 @@ package com.sciamlab.auth.dao;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -25,6 +26,7 @@ import com.sciamlab.auth.model.UserSocial;
 import com.sciamlab.auth.util.AuthLibConfig;
 import com.sciamlab.common.dao.SciamlabDAO;
 import com.sciamlab.common.exception.DAOException;
+import com.sciamlab.common.util.SciamlabDateUtils;
 import com.sciamlab.common.util.SciamlabTokenUtils;
 
 /**
@@ -46,30 +48,30 @@ import com.sciamlab.common.util.SciamlabTokenUtils;
 public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserValidator, UserDAO {
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalUserDAO.class);
-	private static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
-	private static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
-	private static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
-	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
-	private static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
-	private static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
-	private static List<String> PRODUCTS = new ArrayList<String>();
+	protected static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
+	protected static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
+	protected static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
+	protected static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
+	protected static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
+	protected static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
+	protected static List<String> PRODUCTS = new ArrayList<String>();
 	
 	public void buildCache() {
 		//caching products on startup
-		getProductsList();
+		initCacheProductsList();
 		logger.debug("PRODUCTS: "+PRODUCTS);
 		//caching products on startup
-		getRolesList();
+		initCacheRolesList();
 		for(Role r : ROLES_BY_NAME.values())
 			logger.debug("ROLE: "+r);
 		//caching users on startup
-		getUsersList();
+		initCacheUsersList();
 		logger.debug("USERS:");
 		for(User u : USERS_BY_ID.values())
 			logger.debug(u.getType()+":\t"+u.getUserName());
 	}
 	
-	private static User updateCache(User user){
+	protected static User updateCache(User user){
 		Map<String, User> map = USERS_BY_TYPE.get(user.getType());
 		if(map==null){
 			map = new HashMap<String, User>();
@@ -84,7 +86,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		return user;
 	}
 	
-	private static void removeCache(String id){
+	protected static void removeCache(String id){
 		User user = USERS_BY_ID.remove(id);
 		if(user!=null){
 			USERS_BY_API_KEY.remove(user.getApiKey());
@@ -97,12 +99,12 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		}
 	}
 	
-	private static void addLoggedUser(String jwt, User user){
+	protected static void addLoggedUser(String jwt, User user){
 		LOGGED_USERS.put(jwt, user);
 		LOGGED_USERS_REVERSE.put(user.id(), jwt);
 	}
 	
-	private static boolean removeLoggedUser(String jwt){
+	protected static boolean removeLoggedUserByJWT(String jwt){
 		User user = LOGGED_USERS.remove(jwt);
 		if(user!=null){
 			LOGGED_USERS_REVERSE.remove(user.id());
@@ -112,12 +114,22 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		}
 	}
 	
+	protected static boolean removeLoggedUserByID(String id){
+		String jwt = LOGGED_USERS_REVERSE.remove(id);
+		if(jwt!=null){
+			LOGGED_USERS.remove(jwt);
+			return true;
+		}else{
+			return false;
+		}
+	}
+	
 	/**
-	 * get the list of roles
+	 * init the cache map containing the list of roles
 	 * 
 	 * @return the list of roles
 	 */
-	private Collection<Role> getRolesList() {
+	private Collection<Role> initCacheRolesList() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_LIST);
 		for(Properties p : result){
 			Role role = new Role(p.getProperty("role"));
@@ -132,43 +144,49 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	}
 	
 	/**
-	 * get the list of users
+	 * init the cache map containing the list of users
 	 * 
 	 * @return the list of users
 	 */
-	private Collection<User> getUsersList() {
+	protected Collection<User> initCacheUsersList() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USERS_LIST); 
 		for(Properties p : result){
-			User u = null;
-			if(User.LOCAL.equals(p.getProperty("type"))){
-				u = new UserLocal(p.getProperty("email"));
-				((UserLocal) u).setApiKey(p.getProperty("api_key"));
-				((UserLocal) u).setFirstName(p.getProperty("first_name"));
-				((UserLocal) u).setLastName(p.getProperty("last_name"));
-				((UserLocal) u).setEmail(p.getProperty("email"));
-				((UserLocal) u).setPassword(p.getProperty("password"));
-			}else{
-				u = new UserSocial(p.getProperty("social_id"), UserSocial.TYPES.get(p.getProperty("social")));
-				((UserSocial) u).setApiKey(p.getProperty("api_key"));
-				((UserSocial) u).setSocialUser(p.getProperty("user_name"));
-				((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
-				((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
-			}
-			u.setId(p.getProperty("id"));
-			u.addRoles(this.getRolesByUserId(p.getProperty("id")));
-			u.getProfiles().clear();
-			u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
+			User u = this.buildUserFromResultSet(p);
 			logger.debug("User: "+u);
 			updateCache(u);
 		}
 		return USERS_BY_ID.values();
 	}
+	
+	protected User buildUserFromResultSet(Properties p){
+		User u = null;
+		if(User.LOCAL.equals(p.getProperty("type"))){
+			u = new UserLocal(p.getProperty("email"));
+			((UserLocal) u).setFirstName(p.getProperty("first_name"));
+			((UserLocal) u).setLastName(p.getProperty("last_name"));
+			((UserLocal) u).setEmail(p.getProperty("email"));
+			((UserLocal) u).setPassword(p.getProperty("password"));
+		}else{
+			u = new UserSocial(p.getProperty("social_id"), UserSocial.TYPES.get(p.getProperty("social")));
+			((UserSocial) u).setSocialUser(p.getProperty("user_name"));
+			((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
+			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
+		}
+		u.setApiKey(p.getProperty("api_key"));
+		u.setId(p.getProperty("id"));
+		u.addRoles(this.getRolesByUserId(p.getProperty("id")));
+		u.getProfiles().clear();
+		u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
+		return u;
+	}
+	
+	
 	/**
-	 * get the list of PRODUCTS
+	 * init the cache map containing the list of products
 	 * 
-	 * @return the list of PRODUCTS
+	 * @return the list of products
 	 */
-	private List<String> getProductsList() {
+	private List<String> initCacheProductsList() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_PRODUCTS_LIST); 
 		for(Properties p : result){
 			PRODUCTS.add(p.getProperty("product"));
@@ -292,11 +310,45 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	public Map<String, String> getProfilesByUserId(final String id) {
 		if(USERS_BY_ID.containsKey(id))
 			return USERS_BY_ID.get(id).getProfiles();
-		Map<String, Properties> result = this.execQuery(AuthLibConfig.GET_PROFILES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }}, "product", new ArrayList<String>(){{ add("product"); }});
+		List<Properties> result = this.execQuery(AuthLibConfig.GET_PROFILES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }});
 		Map<String, String> profiles = new HashMap<String, String>();
 		for(String product : PRODUCTS){
-			String profile = (result.containsKey(product)) ? result.get(product).getProperty("profile") : AuthLibConfig.API_BASIC_PROFILE;
-			profiles.put(product, profile);
+			boolean found = false;
+			for(Properties p : result){
+				if(product.equals(p.getProperty("product"))){
+					found = true;
+					//Day, Week, SemiMonth, Month, Year
+					String period = p.getProperty("period");
+					int gregorian_calendar_field = -1;
+					int multiplier = 1;
+					if("Day".equals(period))
+						gregorian_calendar_field = GregorianCalendar.DAY_OF_YEAR;
+					else if("Week".equals(period))
+						gregorian_calendar_field = GregorianCalendar.WEEK_OF_YEAR;
+					else if("SemiMonth".equals(period)){
+						gregorian_calendar_field = GregorianCalendar.WEEK_OF_YEAR;
+						multiplier = 2;
+					}else if("Month".equals(period))
+						gregorian_calendar_field = GregorianCalendar.MONTH;
+					else if("Year".equals(period))
+						gregorian_calendar_field = GregorianCalendar.YEAR;
+					if(gregorian_calendar_field==-1)
+						throw new DAOException("period not valid: "+period);
+					
+					int duration = Integer.parseInt(p.getProperty("duration"));
+					Calendar start = new GregorianCalendar();
+					start.setTime(SciamlabDateUtils.getDateFromIso8061DateString(p.getProperty("start")));
+					start.add(gregorian_calendar_field, duration);
+					String wired_profile_to_be_replaced_by_dynamic_parameter = "gold";
+					//TODO CONTINUA DA QUA!!
+					String profile = (start.after(new GregorianCalendar())) ? wired_profile_to_be_replaced_by_dynamic_parameter : AuthLibConfig.API_BASIC_PROFILE;
+					profiles.put(product, profile);
+					break;
+				}
+			}
+			if(!found){
+				profiles.put(product, AuthLibConfig.API_BASIC_PROFILE);
+			}
 		}
 		return profiles;
 	}
@@ -345,8 +397,17 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @param jwt
 	 * @return true if there is an active session for the given token, false otherwise
 	 */
-	public boolean logout(String jwt){
-		return removeLoggedUser(jwt);
+	public boolean logoutByJWT(String jwt){
+		return removeLoggedUserByJWT(jwt);
+	}
+	
+	/**
+	 * invalidate the user session related to the given token
+	 * @param jwt
+	 * @return true if there is an active session for the given token, false otherwise
+	 */
+	public boolean logoutByID(String id){
+		return removeLoggedUserByID(id);
 	}
 	
 	/**
@@ -399,28 +460,6 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		User u = this.buildUserFromResultSet(result.get(0));
 		logger.debug("User: "+u);
 		return updateCache(u);
-	}
-	
-	private User buildUserFromResultSet(Properties p){
-		User u = null;
-		if(User.LOCAL.equals(p.getProperty("type"))){
-			u = new UserLocal(p.getProperty("email"));
-			((UserLocal) u).setFirstName(p.getProperty("first_name"));
-			((UserLocal) u).setLastName(p.getProperty("last_name"));
-			((UserLocal) u).setEmail(p.getProperty("email"));
-			((UserLocal) u).setPassword(p.getProperty("password"));
-		}else{
-			u = new UserSocial(p.getProperty("social_id"), UserSocial.TYPES.get(p.getProperty("social")));
-			((UserSocial) u).setSocialUser(p.getProperty("user_name"));
-			((UserSocial) u).setSocialDisplay(p.getProperty("display_name"));
-			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
-		}
-		u.setApiKey(p.getProperty("api_key"));
-		u.setId(p.getProperty("id"));
-		u.addRoles(this.getRolesByUserId(p.getProperty("id")));
-		u.getProfiles().clear();
-		u.getProfiles().putAll(this.getProfilesByUserId(p.getProperty("id")));
-		return u;
 	}
 	
 	/**
