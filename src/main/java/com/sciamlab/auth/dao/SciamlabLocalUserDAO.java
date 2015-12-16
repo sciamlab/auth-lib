@@ -49,12 +49,12 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalUserDAO.class);
 	protected static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
-	protected static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
+	private static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
 	protected static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
-	protected static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
-	protected static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
-	protected static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
-	protected static List<String> PRODUCTS = new ArrayList<String>();
+	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
+	private static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
+	private static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
+	private static List<String> PRODUCTS = new ArrayList<String>();
 	
 	public void buildCache() {
 		//caching products on startup
@@ -389,7 +389,9 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	
 	@Override
 	public User validate(String jwt){
-		return this.LOGGED_USERS.get(jwt);
+		User u = LOGGED_USERS.get(jwt);
+		System.out.println(u);
+		return u;
 	}
 	
 	/**
@@ -580,7 +582,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @param id
 	 * @return the reactivated user
 	 */
-	public User reactivateUser(final String id){
+	public User reactivateUser(final String id, final String type){
 		this.execUpdate(AuthLibConfig.UPDATE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(id); }});
 		User user = this.getUserById(id);
 		return updateCache(user);
