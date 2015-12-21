@@ -51,6 +51,8 @@ public class AuthLibConfig {
 	public static String GET_USER_LOCAL;
 	public static String GET_USER_SOCIAL;
 	public static String DELETE_USER;
+	public static String DELETE_USER_SOCIAL;
+	public static String DELETE_USER_LOCAL;
 	public static String INSERT_USER;
 	public static String INSERT_USER_LOCAL;
 	public static String INSERT_USER_SOCIAL;
@@ -157,6 +159,8 @@ public class AuthLibConfig {
 			INSERT_USER_LOCAL = prop.getProperty("insert_user_local");
 			INSERT_USER_SOCIAL = prop.getProperty("insert_user_social");
 			DELETE_USER = prop.getProperty("delete_user");
+			DELETE_USER_SOCIAL = prop.getProperty("delete_user_social");
+			DELETE_USER_LOCAL = prop.getProperty("delete_user_local");
 			UPDATE_USER = prop.getProperty("update_user");
 			UPDATE_USER_LOCAL = prop.getProperty("update_user_local");
 			UPDATE_USER_SOCIAL = prop.getProperty("update_user_social");
