@@ -48,34 +48,28 @@ import com.sciamlab.common.util.SciamlabTokenUtils;
 public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserValidator, UserDAO {
 	
 	private static final Logger logger = Logger.getLogger(SciamlabLocalUserDAO.class);
-	protected static Map<String, Map<String, User>> USERS_BY_TYPE = new HashMap<String, Map<String, User>>();
-	private static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
-	protected static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
+	private static Map<String, Map<String, User>> USERS_BY_TYPE_USERNAME = new HashMap<String, Map<String, User>>();
+	private static Map<String, User> USERS_BY_ID = new HashMap<String, User>();
 	private static Map<String, User> USERS_BY_API_KEY = new HashMap<String, User>();
+	private static Map<String, Role> ROLES_BY_NAME = new HashMap<String, Role>();
 	private static Map<String, User> LOGGED_USERS = new HashMap<String, User>();
 	private static Map<String, String> LOGGED_USERS_REVERSE = new HashMap<String, String>();
 	private static List<String> PRODUCTS = new ArrayList<String>();
 	
-	public void buildCache() {
-		//caching products on startup
-		initCacheProductsList();
-		logger.debug("PRODUCTS: "+PRODUCTS);
-		//caching products on startup
-		initCacheRolesList();
-		for(Role r : ROLES_BY_NAME.values())
-			logger.debug("ROLE: "+r);
-		//caching users on startup
-		initCacheUsersList();
-		logger.debug("USERS:");
-		for(User u : USERS_BY_ID.values())
-			logger.debug(u.getType()+":\t"+u.getUserName());
-	}
+//	public void buildCache() {
+//		//caching products on startup
+//		initCacheProductsList();
+//		//caching products on startup
+//		initCacheRolesList();
+//		//caching users on startup
+//		initCacheUsersList();
+//	}
 	
-	protected static User updateCache(User user){
-		Map<String, User> map = USERS_BY_TYPE.get(user.getType());
+	protected static User updateCachedUser(User user){
+		Map<String, User> map = USERS_BY_TYPE_USERNAME.get(user.getType());
 		if(map==null){
 			map = new HashMap<String, User>();
-			USERS_BY_TYPE.put(user.getType(), map);
+			USERS_BY_TYPE_USERNAME.put(user.getType(), map);
 		}
 		map.put(user.getUserName(), user);
 		USERS_BY_ID.put(user.id(), user);
@@ -86,17 +80,37 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		return user;
 	}
 	
-	protected static void removeCache(String id){
+	public static void removeCachedUser(String id){
 		User user = USERS_BY_ID.remove(id);
 		if(user!=null){
 			USERS_BY_API_KEY.remove(user.getApiKey());
-			Map<String, User> map = USERS_BY_TYPE.get(user.getType());
+			Map<String, User> map = USERS_BY_TYPE_USERNAME.get(user.getType());
 			if(map!=null)
 				map.remove(user.getUserName());
 //			String jwt = LOGGED_USERS_REVERSE.remove(user.getId());
 //			if(jwt!=null)
 //				LOGGED_USERS.remove(jwt);
 		}
+	}
+	
+	public static User getCachedUserByTypeAndUsername(String type, String username){
+		if(USERS_BY_TYPE_USERNAME.containsKey(type))
+			return USERS_BY_TYPE_USERNAME.get(type).get(username);
+		else
+			return null;
+	}
+	public static User getCachedUserByUsername(String username){
+		for(Map<String, User> map : USERS_BY_TYPE_USERNAME.values()){
+			if(map.containsKey(username))
+				return map.get(username);
+		}
+		return null;
+	}
+	public static User getCachedUserByID(String id){
+		return USERS_BY_ID.get(id);
+	}
+	public static User getCachedUserByApiKey(String key){
+		return USERS_BY_API_KEY.get(key);
 	}
 	
 	protected static void addLoggedUser(String jwt, User user){
@@ -108,6 +122,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		User user = LOGGED_USERS.remove(jwt);
 		if(user!=null){
 			LOGGED_USERS_REVERSE.remove(user.id());
+			removeCachedUser(user.id());
 			return true;
 		}else{
 			return false;
@@ -117,7 +132,9 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	protected static boolean removeLoggedUserByID(String id){
 		String jwt = LOGGED_USERS_REVERSE.remove(id);
 		if(jwt!=null){
-			LOGGED_USERS.remove(jwt);
+			User user = LOGGED_USERS.remove(jwt);
+			if(user!=null)
+				removeCachedUser(user.id());
 			return true;
 		}else{
 			return false;
@@ -129,7 +146,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * 
 	 * @return the list of roles
 	 */
-	private Collection<Role> initCacheRolesList() {
+	public Collection<Role> initRolesCache() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_LIST);
 		for(Properties p : result){
 			Role role = new Role(p.getProperty("role"));
@@ -140,6 +157,8 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 			Role role = ROLES_BY_NAME.get(p.getProperty("role_child").toUpperCase());
 			role.addRole(ROLES_BY_NAME.get(p.getProperty("role_parent").toUpperCase()));
 		}
+		for(Role r : ROLES_BY_NAME.values())
+			logger.debug("ROLE: "+r);
 		return ROLES_BY_NAME.values();
 	}
 	
@@ -148,12 +167,13 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * 
 	 * @return the list of users
 	 */
-	protected Collection<User> initCacheUsersList() {
+	protected Collection<User> initUsersCache() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USERS_LIST); 
+		logger.debug("USERS:");
 		for(Properties p : result){
 			User u = this.buildUserFromResultSet(p);
-			logger.debug("User: "+u);
-			updateCache(u);
+			updateCachedUser(u);
+			logger.debug(u.getType()+":\t"+u.getUserName());
 		}
 		return USERS_BY_ID.values();
 	}
@@ -186,11 +206,12 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * 
 	 * @return the list of products
 	 */
-	private List<String> initCacheProductsList() {
+	public List<String> initProductsCache() {
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_PRODUCTS_LIST); 
 		for(Properties p : result){
 			PRODUCTS.add(p.getProperty("product"));
 		}
+		logger.debug("PRODUCTS: "+PRODUCTS);
         return PRODUCTS;
 	}
 	
@@ -246,8 +267,9 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 */
 	public List<Role> getRolesByUserId(final String id) {
 		Set<Role> roles = new HashSet<Role>();
-		if(USERS_BY_ID.containsKey(id)){
-			roles.addAll(USERS_BY_ID.get(id).getAllRoles());
+		User cached = getCachedUserByID(id);
+		if(cached!=null){
+			roles.addAll(cached.getAllRoles());
 			return new ArrayList<Role>(roles);
 		}
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_ROLES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }});
@@ -255,7 +277,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		if(result.size()==0) 
 			return new ArrayList<Role>(roles);
 		for(Properties p : result){
-			Role role = ROLES_BY_NAME.get(p.getProperty("role").toUpperCase());
+			Role role = getRoleByName(p.getProperty("role").toUpperCase());
 			if(role!=null){
 				roles.add(role);
 				logger.debug("Role added: "+role);
@@ -283,8 +305,8 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		}else{
 			logger.warn("role "+role+" already set for user "+id);
 		}
-		removeCache(id);
-		return updateCache(getUserById(id));
+		removeCachedUser(id);
+		return updateCachedUser(getUserById(id));
 	}
 	
 	/**
@@ -297,8 +319,8 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	public User deleteUserRole(final String id, final Role role) {
 		int result = this.execUpdate(AuthLibConfig.DELETE_USER_ROLE,
 				new ArrayList<Object>() {{ add(id); add(role.getName());}});
-		removeCache(id);
-		return updateCache(getUserById(id));
+		removeCachedUser(id);
+		return updateCachedUser(getUserById(id));
 	}
 	
 	/**
@@ -308,8 +330,9 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return a map of products, profiles
 	 */
 	public Map<String, String> getProfilesByUserId(final String id) {
-		if(USERS_BY_ID.containsKey(id))
-			return USERS_BY_ID.get(id).getProfiles();
+		User cached = getCachedUserByID(id);
+		if(cached!=null)
+			return cached.getProfiles();
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_PROFILES_BY_USER_ID, new ArrayList<Object>(){{ add(id); }});
 		Map<String, String> profiles = new HashMap<String, String>();
 		for(String product : PRODUCTS){
@@ -369,8 +392,8 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 			result = this.execUpdate(AuthLibConfig.INSERT_USER_PRODUCT_PROFILE,
 					new ArrayList<Object>() {{ add(id); add(product); add(profile); add(new Timestamp(new Date().getTime())); }});
 		}
-		removeCache(id);
-		return updateCache(getUserById(id));
+		removeCachedUser(id);
+		return updateCachedUser(getUserById(id));
 	}
 	
 	/**
@@ -383,14 +406,13 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	public User deleteUserProductProfile(final String id, final String product) {
 		int result = this.execUpdate(AuthLibConfig.DELETE_USER_PRODUCT_PROFILE,
 				new ArrayList<Object>() {{ add(id); add(product);}});
-		removeCache(id);
-		return updateCache(getUserById(id));
+		removeCachedUser(id);
+		return updateCachedUser(getUserById(id));
 	}
 	
 	@Override
 	public User validate(String jwt){
 		User u = LOGGED_USERS.get(jwt);
-		System.out.println(u);
 		return u;
 	}
 	
@@ -434,15 +456,16 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return the user
 	 */
 	public User getUserById(final String id){
-		if(USERS_BY_ID.containsKey(id))
-			return USERS_BY_ID.get(id);
+		User cached = getCachedUserByID(id);
+		if(cached!=null)
+			return cached;
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USER_BY_ID, new ArrayList<Object>(){{add(id);}}); 
 		if(result.size()==0) return null;
 		if(result.size()>1) 
 			throw new DAOException("Multiple users retrieved for id "+id);
 		User u = this.buildUserFromResultSet(result.get(0));
 		logger.debug("User: "+u);
-		return updateCache(u);
+		return updateCachedUser(u);
 	}
 	
 	/**
@@ -453,15 +476,16 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return the user
 	 */
 	public User getUserByApiKey(final String api_key){
-		if(USERS_BY_API_KEY.containsKey(api_key))
-			return USERS_BY_API_KEY.get(api_key);
+		User cached = getCachedUserByApiKey(api_key);
+		if(cached!=null)
+			return cached;
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USER_BY_API_KEY, new ArrayList<Object>(){{add(api_key);}}); 
 		if(result.size()==0) return null;
 		if(result.size()>1) 
 			throw new DAOException("Multiple users retrieved for api key "+api_key);
 		User u = this.buildUserFromResultSet(result.get(0));
 		logger.debug("User: "+u);
-		return updateCache(u);
+		return updateCachedUser(u);
 	}
 	
 	/**
@@ -482,15 +506,16 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 * @return the user
 	 */
 	public UserLocal getUserLocalByEmail(final String email){
-		if(USERS_BY_TYPE.containsKey(UserLocal.LOCAL) && ((Map<String, User>)USERS_BY_TYPE.get(UserLocal.LOCAL)).containsKey(email))
-			return (UserLocal) USERS_BY_TYPE.get(UserLocal.LOCAL).get(email);
+		UserLocal cached = (UserLocal) getCachedUserByTypeAndUsername(UserLocal.LOCAL, email);
+		if(cached!=null)
+			return cached;
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USER_LOCAL, new ArrayList<Object>(){{ add(email); }});
 		if(result.size()==0) return null;
 		if(result.size()>1) 
 			throw new DAOException("Multiple local users retrieved for email "+email);
 		User u = this.buildUserFromResultSet(result.get(0));
 		logger.debug("User: "+u);
-		return (UserLocal) updateCache(u);
+		return (UserLocal) updateCachedUser(u);
 	}
 	/**
 	 * get the social user by username
@@ -502,15 +527,16 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		final String social_cleaned = UserSocial.TYPES.get(social);
 		if(social_cleaned == null)
 			throw new DAOException("Wrong value for social '"+social+"'. use one in "+UserSocial.TYPES.keySet());
-		if(USERS_BY_TYPE.containsKey(social) && ((Map<String, User>)USERS_BY_TYPE.get(social)).containsKey(username))
-			return (UserSocial)((Map<String, User>)USERS_BY_TYPE.get(social)).get(username);
+		UserSocial cached = (UserSocial) getCachedUserByTypeAndUsername(social, username);
+		if(cached!=null)
+			return cached;
 		List<Properties> result = this.execQuery(AuthLibConfig.GET_USER_SOCIAL, new ArrayList<Object>(){{ add(username); add(social_cleaned);}});
 		if(result.size()==0) return null;
 		if(result.size()>1) 
 			throw new DAOException("Multiple social users retrieved for username "+username+" on "+social_cleaned);
 		User u = this.buildUserFromResultSet(result.get(0));
 		logger.debug("User: "+u);
-		return (UserSocial) updateCache(u);
+		return (UserSocial) updateCachedUser(u);
 	}
 	
 	/**
@@ -541,7 +567,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 			}});
 		}
 		int count = this.execUpdate(updates);
-		updateCache(user);
+		updateCachedUser(user);
 		//check with 2 since the list of updates contains 2 statements and we expect to update 1 row for each statement
 		return count == 2;
 	}
@@ -571,7 +597,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		}
 		updates.put(AuthLibConfig.UPDATE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.id()); }});
 		int count = this.execUpdate(updates);
-		updateCache(user);
+		updateCachedUser(user);
 		//check with 2 since the list of updates contains 2 statements and we expect to update 1 row for each statement
 		return count == 2;
 	}
@@ -585,7 +611,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	public User reactivateUser(final String id, final String type){
 		this.execUpdate(AuthLibConfig.UPDATE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(id); }});
 		User user = this.getUserById(id);
-		return updateCache(user);
+		return updateCachedUser(user);
 	}
 	
 	/**
@@ -625,7 +651,7 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 	 */
 	public boolean deleteUser(final User user){
 		int count = this.execUpdate(AuthLibConfig.DELETE_USER, new ArrayList<Object>() {{ add(new Timestamp(new Date().getTime())); add(user.id()); }});
-		removeCache(user.id());
+		removeCachedUser(user.id());
 		return count==1;
 	}
 	
@@ -688,10 +714,10 @@ public abstract class SciamlabLocalUserDAO extends SciamlabDAO implements UserVa
 		for(Role r : ROLES_BY_NAME.values())
 			if(r.hasRole(role))
 				r.removeRole(role);
-		for(User u : USERS_BY_ID.values())
+		for(User u : getCachedUsersList())
 			if(u.hasRole(role)){
-				removeCache(u.id());
-				updateCache(getUserById(u.id()));
+				removeCachedUser(u.id());
+				updateCachedUser(getUserById(u.id()));
 			}
 		int result = this.execUpdate(AuthLibConfig.DELETE_ROLE,
 				new ArrayList<Object>() {{ add(role.getName()); }});
