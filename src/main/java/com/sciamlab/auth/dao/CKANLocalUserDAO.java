@@ -95,8 +95,8 @@ public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValida
 			return roles;
 		for(String r : map.keySet()){
 			if(AuthLibConfig.CKAN_ROLES.containsKey(r.toUpperCase())){
-				roles.add(AuthLibConfig.CKAN_ROLES.get(r));
-				logger.debug("Role added: "+r);
+				roles.add(AuthLibConfig.CKAN_ROLES.get(r.toUpperCase()));
+				logger.debug("Role added: "+r.toUpperCase());
 			}else{
 				logger.warn(r+"is not identified as a valid role!");
 			}
