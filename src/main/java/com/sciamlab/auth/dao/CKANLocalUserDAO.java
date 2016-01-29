@@ -69,7 +69,9 @@ public abstract class CKANLocalUserDAO extends SciamlabDAO implements UserValida
 	private User buildUserFromResultSet(Properties p) {
 		User u = null;
 		if(p.containsKey("social")){
-			u = new UserSocial(p.getProperty("name"), UserSocial.TYPES.get(p.getProperty("social")));
+			u = new UserSocial(p.getProperty("id").substring(0, p.getProperty("id").indexOf("@")), UserSocial.TYPES.get(p.getProperty("social")));
+			((UserSocial) u).setSocialUser(p.getProperty("name"));
+			((UserSocial) u).setSocialDisplay("".equals(p.getProperty("fullname")) ? null : p.getProperty("fullname"));
 			((UserSocial) u).setSocialDetails(new JSONObject(((PGobject) p.get("details")).getValue()));
 		}else{
 			u = new UserLocal(p.getProperty("name"));

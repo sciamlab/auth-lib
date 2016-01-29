@@ -103,7 +103,7 @@ public class UserSocial extends User {
 		JSONObject result = super.toJSON();
         result.put("social_id", socialId);
         result.put("social_user", socialUser);
-        result.put("social_display", socialDisplay);
+        result.put("social_display", getDisplayName());
         result.put("social_type", socialType);
         result.put("social_details", socialDetails);
 		return result;
