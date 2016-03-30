@@ -13,10 +13,10 @@ import org.glassfish.jersey.server.ContainerRequest;
 import com.sciamlab.auth.SciamlabSecurityContext;
 import com.sciamlab.auth.dao.UserValidator;
 import com.sciamlab.auth.model.User;
-import com.sciamlab.common.exception.BadRequestException;
-import com.sciamlab.common.exception.InternalServerErrorException;
-import com.sciamlab.common.exception.SciamlabWebApplicationException;
-import com.sciamlab.common.exception.UnauthorizedException;
+import com.sciamlab.common.exception.web.BadRequestException;
+import com.sciamlab.common.exception.web.InternalServerErrorException;
+import com.sciamlab.common.exception.web.SciamlabWebApplicationException;
+import com.sciamlab.common.exception.web.UnauthorizedException;
 
 @Priority(Priorities.AUTHENTICATION)
 public class TokenBasedSecurityFilter implements ContainerRequestFilter {

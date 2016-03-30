@@ -11,7 +11,7 @@ import javax.ws.rs.container.ContainerRequestFilter;
 
 import org.apache.log4j.Logger;
 
-import com.sciamlab.common.exception.UnauthorizedException;
+import com.sciamlab.common.exception.web.UnauthorizedException;
 
 @Priority(Priorities.AUTHORIZATION) 
 public class RolesAllowedSecurityFilter  implements ContainerRequestFilter {

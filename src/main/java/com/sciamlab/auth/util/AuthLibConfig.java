@@ -19,7 +19,6 @@ import org.json.JSONObject;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.sciamlab.auth.model.Role;
-import com.sciamlab.common.exception.InternalServerErrorException;
 import com.sciamlab.common.util.SciamlabStreamUtils;
 
 public class AuthLibConfig {

@@ -18,11 +18,11 @@ import com.google.common.cache.CacheBuilder;
 import com.sciamlab.auth.dao.UserValidator;
 import com.sciamlab.auth.model.User;
 import com.sciamlab.auth.util.AuthLibConfig;
-import com.sciamlab.common.exception.BadRequestException;
-import com.sciamlab.common.exception.InternalServerErrorException;
-import com.sciamlab.common.exception.SciamlabWebApplicationException;
-import com.sciamlab.common.exception.TooManyRequestsException;
-import com.sciamlab.common.exception.UnauthorizedException;
+import com.sciamlab.common.exception.web.BadRequestException;
+import com.sciamlab.common.exception.web.InternalServerErrorException;
+import com.sciamlab.common.exception.web.SciamlabWebApplicationException;
+import com.sciamlab.common.exception.web.TooManyRequestsException;
+import com.sciamlab.common.exception.web.UnauthorizedException;
 import com.sciamlab.common.util.SciamlabStringUtils;
 
 @Priority(Priorities.AUTHENTICATION)

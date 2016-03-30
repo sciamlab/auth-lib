@@ -8,7 +8,7 @@ import org.apache.log4j.Logger;
 
 import com.sciamlab.auth.model.Role;
 import com.sciamlab.auth.model.User;
-import com.sciamlab.common.exception.ForbiddenException;
+import com.sciamlab.common.exception.web.ForbiddenException;
 
 public class SciamlabSecurityContext implements SecurityContext {
 	
